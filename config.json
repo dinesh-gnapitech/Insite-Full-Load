@@ -1,0 +1,37 @@
+{
+    "source_database": {
+      "host": "mssql_host",
+      "port": 1433,
+      "user": "your_username",
+      "password": "your_password",
+      "database": "source_db"
+    },
+    "target_database": {
+      "host": "postgres_host",
+      "port": 5432,
+      "user": "your_username",
+      "password": "your_password",
+      "database": "target_db"
+    },
+    "etl_mode": "full",
+    "chunk_size": 50000,
+    "log_folder": "./logs",
+    "def_file_folder": {
+      "source_path": "./defs/original"
+    },
+    "tables": [
+      {
+        "target_schema": "public",
+        "target_table": "customers",
+        "join_query": "SELECT c.id, c.name, o.total FROM customers c JOIN orders o ON c.id = o.customer_id",
+        "def_file_name": "customers.def"
+      },
+      {
+        "target_schema": "sales",
+        "target_table": "transactions",
+        "join_query": "SELECT * FROM transactions t JOIN payments p ON t.payment_id = p.id",
+        "def_file_name": "transactions.def"
+      }
+    ]
+  }
+  

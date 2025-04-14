@@ -1,0 +1,184 @@
+[
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "pyodbc",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pyodbc",
+        "description": "pyodbc",
+        "detail": "pyodbc",
+        "documentation": {}
+    },
+    {
+        "label": "psycopg2",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "psycopg2",
+        "description": "psycopg2",
+        "detail": "psycopg2",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
+        "documentation": {}
+    },
+    {
+        "label": "pandas",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pandas",
+        "description": "pandas",
+        "detail": "pandas",
+        "documentation": {}
+    },
+    {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "load_config",
+        "importPath": "utils.config_loader",
+        "description": "utils.config_loader",
+        "isExtraImport": true,
+        "detail": "utils.config_loader",
+        "documentation": {}
+    },
+    {
+        "label": "setup_logger",
+        "importPath": "utils.logger",
+        "description": "utils.logger",
+        "isExtraImport": true,
+        "detail": "utils.logger",
+        "documentation": {}
+    },
+    {
+        "label": "handle_def_file_and_create_table",
+        "importPath": "utils.def_handler",
+        "description": "utils.def_handler",
+        "isExtraImport": true,
+        "detail": "utils.def_handler",
+        "documentation": {}
+    },
+    {
+        "label": "get_mssql_conn",
+        "importPath": "utils.db_connections",
+        "description": "utils.db_connections",
+        "isExtraImport": true,
+        "detail": "utils.db_connections",
+        "documentation": {}
+    },
+    {
+        "label": "get_postgres_conn",
+        "importPath": "utils.db_connections",
+        "description": "utils.db_connections",
+        "isExtraImport": true,
+        "detail": "utils.db_connections",
+        "documentation": {}
+    },
+    {
+        "label": "run_etl_for_table",
+        "importPath": "utils.etl_executor",
+        "description": "utils.etl_executor",
+        "isExtraImport": true,
+        "detail": "utils.etl_executor",
+        "documentation": {}
+    },
+    {
+        "label": "load_config",
+        "kind": 2,
+        "importPath": "utils.config_loader",
+        "description": "utils.config_loader",
+        "peekOfCode": "def load_config(file_path):\n    with open(file_path, 'r', encoding='utf-8') as f:\n        return json.load(f)",
+        "detail": "utils.config_loader",
+        "documentation": {}
+    },
+    {
+        "label": "get_mssql_conn",
+        "kind": 2,
+        "importPath": "utils.db_connections",
+        "description": "utils.db_connections",
+        "peekOfCode": "def get_mssql_conn(config):\n    conn_str = (\n        f\"DRIVER={{ODBC Driver 17 for SQL Server}};\"\n        f\"SERVER={config['host']},{config['port']};\"\n        f\"DATABASE={config['database']};\"\n        f\"UID={config['user']};\"\n        f\"PWD={config['password']}\"\n    )\n    return pyodbc.connect(conn_str)\ndef get_postgres_conn(config):",
+        "detail": "utils.db_connections",
+        "documentation": {}
+    },
+    {
+        "label": "get_postgres_conn",
+        "kind": 2,
+        "importPath": "utils.db_connections",
+        "description": "utils.db_connections",
+        "peekOfCode": "def get_postgres_conn(config):\n    return psycopg2.connect(\n        host=config['host'],\n        port=config['port'],\n        dbname=config['database'],\n        user=config['user'],\n        password=config['password']\n    )",
+        "detail": "utils.db_connections",
+        "documentation": {}
+    },
+    {
+        "label": "handle_def_file_and_create_table",
+        "kind": 2,
+        "importPath": "utils.def_handler",
+        "description": "utils.def_handler",
+        "peekOfCode": "def handle_def_file_and_create_table(source_path, target_db_config, table_name, logger):\n    try:\n        command = [\n            \"python\", \"tools/myw_db.py\", \"myproj\", \"load\", source_path,\n            \"--update\",\n            \"--host\", target_db_config[\"host\"],\n            \"--port\", str(target_db_config[\"port\"]),\n            \"--username\", target_db_config[\"user\"],\n            \"--password\", target_db_config[\"password\"]\n        ]",
+        "detail": "utils.def_handler",
+        "documentation": {}
+    },
+    {
+        "label": "run_etl_for_table",
+        "kind": 2,
+        "importPath": "utils.etl_executor",
+        "description": "utils.etl_executor",
+        "peekOfCode": "def run_etl_for_table(mssql_conn, pg_conn, table_config, chunk_size, logger):\n    try:\n        mssql_cursor = mssql_conn.cursor()\n        pg_cursor = pg_conn.cursor()\n        query = table_config[\"join_query\"]\n        target_schema = table_config[\"target_schema\"]\n        target_table = table_config[\"target_table\"]\n        full_target = f\"{target_schema}.{target_table}\"\n        logger.info(f\"Running query for table: {full_target}\")\n        mssql_cursor.execute(query)",
+        "detail": "utils.etl_executor",
+        "documentation": {}
+    },
+    {
+        "label": "setup_logger",
+        "kind": 2,
+        "importPath": "utils.logger",
+        "description": "utils.logger",
+        "peekOfCode": "def setup_logger(log_folder):\n    if not os.path.exists(log_folder):\n        os.makedirs(log_folder)\n    log_filename = os.path.join(log_folder, f\"etl_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log\")\n    logger = logging.getLogger(\"ETLLogger\")\n    logger.setLevel(logging.INFO)\n    file_handler = logging.FileHandler(log_filename)\n    console_handler = logging.StreamHandler()\n    formatter = logging.Formatter(\"%(asctime)s [%(levelname)s] %(message)s\")\n    file_handler.setFormatter(formatter)",
+        "detail": "utils.logger",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "etl_runner",
+        "description": "etl_runner",
+        "peekOfCode": "def main():\n    config = load_config(\"config.json\")\n    logger = setup_logger(config[\"log_folder\"])\n    mssql_conn = get_mssql_conn(config[\"source_database\"])\n    pg_conn = get_postgres_conn(config[\"target_database\"])\n    for table_config in config[\"tables\"]:\n        logger.info(\"🚀 Starting ETL for: %s.%s\", table_config['target_schema'], table_config['target_table'])\n        def_file_name = table_config[\"def_file_name\"]\n        source_def_path = os.path.join(config[\"def_file_folder\"][\"source_path\"], def_file_name)\n        # Create table directly using .def file from source path",
+        "detail": "etl_runner",
+        "documentation": {}
+    }
+]
