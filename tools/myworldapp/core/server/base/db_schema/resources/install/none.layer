@@ -1,0 +1,11 @@
+{
+   "name": "{:none_layer_name}", 
+   "category": "basemap", 
+   "description": "{:none_layer_desc}", 
+   "datasource": "built_in", 
+   "spec": {
+      "mapType": "Blank"
+   }, 
+   "min_scale": 1, 
+   "max_scale": 20
+}

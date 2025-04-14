@@ -1,0 +1,56 @@
+.ui-front {
+    z-index: 10001 !important;
+}
+.ui-dialog {
+    width: calc(100% - 2px) !important;
+    z-index: 10002 !important;
+    border-radius: 0;
+    .ui-dialog-titlebar {
+        padding: 8px 15px;
+        font-size: 1.2em;
+        font-weight: 600;
+    }
+    .ui-dialog-buttonpane {
+        padding: 0 !important;
+        border-top: none;
+        .ui-dialog-buttonset {
+            float: none;
+            @include flex-row-centered;
+            padding: 0;
+
+            button {
+                flex: 1 auto;
+                margin: 0 !important;
+                border-radius: 0 !important;
+
+                &:not(:first-child) {
+                    border-left: none;
+                }
+            }
+        }
+    }
+}
+
+.ui-button-text-only .ui-button-text {
+    padding: 0.6em 1em;
+}
+//Makes AntD modals and the footer buttons span the viewport width
+.ant-modal {
+    max-width: calc(100vw - 2px);
+    width: calc(100vw - 2px) !important;
+    .ant-modal-footer {
+        float: none;
+        @include flex-row-centered;
+        padding: 0 !important;
+        border-top: none !important;
+        button {
+            flex: 1 auto;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            height: 44px;
+            &:not(:first-child) {
+                border-left: none;
+            }
+        }
+    }
+}

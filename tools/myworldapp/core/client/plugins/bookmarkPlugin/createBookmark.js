@@ -1,0 +1,284 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import { template } from 'underscore';
+import bookmarksHtml from 'text!html/bookmarks.html';
+import { Control } from 'myWorld/base/control';
+import { android, isTouchDevice } from 'myWorld/base/browser';
+import { BookmarkForm } from './bookmarkForm';
+
+const bookmarkDetail = $(bookmarksHtml).filter('#bookmark-detail-template').html();
+const bookmarkBrief = $(bookmarksHtml).filter('#bookmark-brief-template').html();
+
+/**
+ * Map control plugin to display the zoom level
+ *
+ */
+export class CreateBookmarkDialog extends Control {
+    static {
+        this.prototype.id = 'create-bookmark';
+        this.prototype.bookmarkDetailsTemplate = template(bookmarkDetail);
+        this.prototype.bookmarkBriefTemplate = template(bookmarkBrief);
+
+        this.prototype.events = {
+            'keypress .text, .checkboxField': 'handleReturnKeypress',
+            'click .action_bookmarkZoom': 'zoomToLocation'
+        };
+    }
+
+    constructor(owner, options) {
+        super(owner, options);
+        this.owner = owner;
+        this.app = owner.app;
+        this.system = this.app.system;
+        this.canCreateSharedBookmarks = false;
+        this.renderDialog();
+        this.preRender();
+    }
+
+    renderDialog() {
+        this.$el.dialog({
+            modal: false,
+            autoOpen: false,
+            width: 'auto',
+            resizable: false,
+            position: { my: 'center', at: 'top+160', of: window },
+            title: this.msg('title'),
+            closeText: this.msg('close_tooltip'),
+            buttons: {
+                Close: {
+                    text: this.msg('close_btn'),
+                    click: () => {
+                        this.close();
+                    }
+                },
+                'Manage Bookmarks': {
+                    text: this.msg('manage_btn'),
+                    click: () => {
+                        this.close();
+                        this.owner.showManageDialog();
+                    }
+                },
+                Save: {
+                    text: this.msg('save_btn'),
+                    class: 'primary-btn',
+                    click: () => {
+                        this.validate();
+                    }
+                }
+            },
+            open(event, ui) {
+                $(':focus', this).blur();
+            },
+            close: () => {
+                this.messageContainer.empty();
+            }
+        });
+
+        if (isTouchDevice && android) {
+            //Allows 'x' (in the draggable titlebar) click to work on android touch devices
+            this.$el
+                .dialog('widget')
+                .find('.ui-dialog-titlebar-close')
+                .mousedown(() => {
+                    this.$el.dialog('close');
+                });
+        }
+
+        this.messageContainer = $('<div class="message-container"></div>').appendTo(
+            this.$el.dialog('widget').find('.ui-dialog-buttonpane')
+        );
+    }
+
+    preRender() {
+        const self = this;
+        this.app.map.on(
+            'moveend',
+            args => {
+                const center = self.app.map.getCenter();
+                self.form.setValue('lat', center.lat.toFixed(7));
+                self.form.setValue('lng', center.lng.toFixed(7));
+            },
+            this
+        );
+
+        this.app.map.on(
+            'zoom',
+            function (args) {
+                const zoom = this.app.map.getZoom();
+                self.form.setValue('zoom', zoom);
+            },
+            this
+        );
+
+        this.app.userHasPermission('createSharedBookmark').then(hasPerm => {
+            this.canCreateSharedBookmarks = hasPerm;
+            this.render();
+        });
+
+        this.system.getBookmarksForUser().then(bookmarks => {
+            this.owner.bookmarks = bookmarks;
+        });
+    }
+
+    render() {
+        const center = this.app.map.getCenter();
+
+        this.form = new BookmarkForm({
+            app: this.app,
+            map: this.app.map,
+            canCreateSharedBookmarks: this.canCreateSharedBookmarks,
+            showBookmarkDetail: this.options.showBookmarkDetail,
+            model: {
+                lat: center.lat.toFixed(7),
+                lng: center.lng.toFixed(7),
+                zoom: this.app.map.getZoom()
+            },
+            onChange: (name, value, form) => {
+                if (!this.options.showBookmarkDetail) return;
+                const lat = form.getValue('lat');
+                const lng = form.getValue('lng');
+                const latValid = this.isCoordValid(form, 'lat');
+                const lngValid = this.isCoordValid(form, 'lng');
+                if (!latValid || !lngValid) return;
+
+                switch (name) {
+                    case 'lat':
+                        this.app.map.panTo([lat, lng]);
+                        break;
+                    case 'lng':
+                        this.app.map.panTo([lat, lng]);
+                        break;
+                    case 'zoom':
+                        this.app.map.setZoom(value);
+                        break;
+                    default:
+                    //noop
+                }
+            }
+        });
+
+        this.$el.html(this.form.$el);
+    }
+
+    isCoordValid(form, field) {
+        const coord = form.getValue(field);
+
+        if (!coord.match(/^\d+(\.\d+)?$/)) {
+            form.getField(field).renderError();
+            return false;
+        }
+
+        form.getField(field).clearError();
+        return true;
+    }
+
+    handleReturnKeypress(event) {
+        if (event.which == 13) {
+            this.validate();
+        }
+    }
+
+    /*
+     * Handles the save action from the 'Create Bookmark' dialogue
+     */
+    validate() {
+        const values = this.form.getValues();
+
+        if (!values.myw_title.length) {
+            this.owner.message(this.messageContainer, this.msg('enter_name'), 'error');
+            return;
+        }
+
+        if (this.owner.existsInList(values.myw_title, this.owner.bookmarks)) {
+            if (!this.bookmarkExistsDialog)
+                this.bookmarkExistsDialog = this._createBookmarkExistsDialog();
+            // Ask the user if he wants to replace the existing bookmark with this new one
+            this.bookmarkExistsDialog
+                .dialog('option', 'title', this.msg('exists_title', { name: values.myw_title }))
+                .dialog('open');
+            return;
+        }
+
+        this.saveBookmark();
+    }
+
+    saveBookmark() {
+        const values = this.form.getValues();
+
+        this.owner.message(this.messageContainer, this.msg('saving'), 'alert');
+        this.toggleSaveButton(true);
+
+        this.system
+            .saveBookmark(values)
+            .then(res => {
+                this.toggleSaveButton(false);
+                this.owner.message(this.messageContainer, this.msg('was_saved'));
+                this.owner.bookmarks.push(res);
+                //wait for a second before closing the editor (so the user can see the success message)
+                setTimeout(() => {
+                    this.close();
+                }, 1000);
+            })
+            .catch(() => {
+                this.owner.message(this.messageContainer, this.msg('update_failed'), 'error');
+                console.log('broken', this.messageContainer);
+                this.toggleSaveButton(false);
+            });
+    }
+
+    /*
+     * Shows the bookmark window.
+     */
+    show() {
+        this.render();
+        this.$el.dialog('open');
+    }
+
+    /*
+     * Creates a dialog using jquery-ui to alert the user that they might be overwriting an existing bookmark.
+     * @return {jquery} jquery dialog
+     * @private
+     */
+    _createBookmarkExistsDialog() {
+        const bookmarkExistsDialog = $(
+            `<div id = "same-bookmark-warning">${this.msg('overwritep')}</div>`
+        ).dialog({
+            modal: true,
+            autoOpen: false,
+            width: 'auto',
+            resizable: false,
+            buttons: {
+                OK: {
+                    text: this.msg('ok_btn'),
+                    class: 'primary-btn',
+                    click: () => {
+                        bookmarkExistsDialog.dialog('close');
+                        this.saveBookmark();
+                    }
+                },
+                Cancel: {
+                    text: this.msg('cancel_btn'),
+                    class: 'right',
+                    click: () => {
+                        bookmarkExistsDialog.dialog('close');
+                    }
+                }
+            }
+        });
+        return bookmarkExistsDialog;
+    }
+
+    close() {
+        this.$el.dialog('close');
+    }
+
+    /*
+     * Enables/Disables the Save button
+     * @param  {boolean} disable Whether to disaable the save button or not
+     */
+    toggleSaveButton(disable) {
+        this.$el.dialog('widget').find('.primary-btn').attr('disabled', disable);
+    }
+}
+
+export default CreateBookmarkDialog;

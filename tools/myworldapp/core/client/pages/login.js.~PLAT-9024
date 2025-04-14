@@ -1,0 +1,187 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import { escape, template } from 'underscore';
+import myw from 'myWorld/base/core';
+import { readCookie, writeCookie } from 'myWorld/base/util';
+import { msg, translate, localisation } from 'myWorld/base/localisation';
+
+const loginPage = {
+    msg: msg('login'),
+
+    async init(loginInfo) {
+        this.loginInfo = loginInfo;
+        this.template = template($('#login-page-template').html());
+        this.fieldTemplate = template($('#login-field-template').html());
+        this.fieldsSpec = loginInfo.auth_fields || [];
+        this.controlTemplate = template($('#login-control-template').html());
+        this.controlSpec = loginInfo.auth_controls || [];
+
+        await this.loadMessages();
+        this.render();
+        this.initValues();
+    },
+
+    /*
+     * Loads client messages and any necessary module messages
+     * @return {Promise}
+     */
+    loadMessages() {
+        const messagesPromises = [localisation.ready];
+
+        //check for addtional namespaces in labels of fields
+        this.fieldsSpec.forEach(fieldSpec => {
+            const parts = fieldSpec.label.split('.');
+
+            if (parts.length > 2) {
+                //module name is the label excluding last two parts
+                const moduleName = parts.slice(0, parts.length - 2).join('.');
+                messagesPromises.push(localisation.loadModuleLocale(moduleName));
+            }
+        });
+
+        return Promise.all(messagesPromises);
+    },
+
+    render() {
+        let html;
+        let el;
+        const loginInfo = this.loginInfo;
+
+        if (loginInfo.message_id) {
+            loginInfo.message = this.msg(loginInfo.message_id, { app_name: loginInfo.redirect_to });
+        }
+
+        //sanitizing message since it can include message or message_id from server via url
+        loginInfo.message = escape(loginInfo.message);
+
+        html = this.template(loginInfo);
+        el = $(html);
+
+        el.find('#login-submission')
+            .attr('value', this.msg('submission')) //message directly in value attribute wasn't being translated
+            .click(this.onSubmit.bind(this));
+
+        this.renderAuthFields(el);
+        if (this.controlSpec.length) el.find('#login-controls-separator').show();
+        this.renderAuthControls(el);
+        translate('login', el);
+        $('#login-or-sign-in-with').html(this.msg('or_sign_in_with'));
+        // @ts-ignore
+        $('body').html(el);
+        // We don't use translate for the footer to give a more professional
+        // look whilst loading.
+        $('#built-by-footer').html(this.msg('built_by_footer'));
+
+        //focus on first element
+        this.fieldsSpec[0].formElem.find('input').focus();
+    },
+
+    renderAuthFields(el) {
+        const fieldsElem = el.find('#login-fields');
+
+        for (const fieldSpec of this.fieldsSpec) {
+            const parts = fieldSpec.label.split('.');
+            let labelMessageGroup;
+            let labelMessage;
+
+            if (parts.length === 1) {
+                labelMessageGroup = 'login';
+                labelMessage = fieldSpec.label;
+            } else {
+                //use last two 'parts'
+                labelMessageGroup = parts.slice(-2)[0];
+                labelMessage = parts.slice(-2)[1];
+            }
+
+            fieldSpec.translatedLabel = msg(labelMessageGroup, labelMessage);
+            fieldSpec.formElem = $(this.fieldTemplate(fieldSpec));
+            fieldsElem.append(fieldSpec.formElem);
+        }
+        if (!this.fieldsSpec.length) el.find('#login-submission').hide();
+    },
+
+    renderAuthControls(el) {
+        const fieldsElem = el.find('#login-controls');
+
+        for (const controlSpec of this.controlSpec) {
+            const parts = controlSpec.label.split('.');
+            let labelMessageGroup;
+            let labelMessage;
+
+            if (parts.length === 1) {
+                labelMessageGroup = 'login';
+                labelMessage = controlSpec.label;
+            } else {
+                //use last two 'parts'
+                labelMessageGroup = parts.slice(-2)[0];
+                labelMessage = parts.slice(-2)[1];
+            }
+
+            controlSpec.translatedLabel = msg(labelMessageGroup, labelMessage);
+            controlSpec.formElem = $(this.controlTemplate(controlSpec));
+            fieldsElem.append(controlSpec.formElem);
+        }
+    },
+
+    initValues() {
+        //ENH: remove this functionality or make it more generic
+        const myworld_user_data =
+            this.loginInfo.use_login_cookie && readCookie('myworldapp_user_data');
+        if (myworld_user_data) {
+            const [username, password] = myworld_user_data.split('|');
+            if (username) $('#login-user').val(username);
+            if (password) $('#login-pass').val(password);
+
+            //fill in username (ex: from previous failed auth request)
+            //ENH: make generic
+            if (this.loginInfo.user) $('#login-user').val(this.loginInfo.user);
+        }
+    },
+
+    onSubmit(e) {
+        e.preventDefault();
+
+        const cookify_user_data = this.loginInfo.use_login_cookie,
+            cookie_timeout_hours = this.loginInfo.login_cookie_timeout_hours || 0;
+        const username = $('#login-user').val();
+        const password = $('#login-pass').val();
+
+        if (cookify_user_data) {
+            // Get the username and password to keep for later in a cookie.
+            if (username && password) {
+                // Set the cookie to expire in the configured time.
+                writeCookie(
+                    'myworldapp_user_data',
+                    `${username}|${password}`,
+                    cookie_timeout_hours
+                );
+            }
+        }
+
+        //Reset session usage
+        const pathname = document.location.pathname;
+        const page = pathname.substr(1, pathname.lastIndexOf('/'));
+        const localStoragePath = `${page}/!!!shared!!!/state/${username}`; //needs to match code in RestServer._getStateItemName. ENH: reuse
+        const localStorageJsonString = localStorage.getItem(localStoragePath);
+
+        if (localStorageJsonString) {
+            try {
+                let sharedStorage = JSON.parse(localStorageJsonString);
+                delete sharedStorage.usageMonitor;
+                localStorage.setItem(localStoragePath, JSON.stringify(sharedStorage));
+            } catch (e) {
+                console.log('Error clearing stored usage session', e);
+            }
+        }
+        $('#login').submit();
+    }
+};
+
+$(() => {
+    const languages = $('body').data('myw-languages').split(',');
+    localisation.init(['myw.client'], { languages });
+    const loginInfo = JSON.parse(unescape($('body').data('myw-login-info')));
+
+    myw.app = loginPage; //for debugging purposes
+    loginPage.init(loginInfo);
+});

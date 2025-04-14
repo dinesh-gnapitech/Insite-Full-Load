@@ -1,0 +1,11 @@
+{
+   "name": "{:bing_layer_name}", 
+   "category": "basemap", 
+   "description": "{:bing_layer_desc}", 
+   "datasource": "bing", 
+   "spec": {
+      "mapType": "Road"
+   }, 
+   "min_scale": 0, 
+   "max_scale": 20
+}

@@ -1,0 +1,9 @@
+{
+   "name": "bing",
+   "external_name": "{:bing_datasource_ex_name}",
+   "description": "{:bing_datasource_desc}",
+   "type": "bing",
+   "spec": {
+      "license": "LICENCE_KEY_HERE"
+   }
+}

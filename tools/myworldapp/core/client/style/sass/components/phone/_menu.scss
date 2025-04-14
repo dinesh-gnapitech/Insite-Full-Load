@@ -1,0 +1,91 @@
+#menu {
+    display: none;
+    position: absolute;
+    height: 100%;
+    width: calc(100% - 90px);
+    max-width: 300px;
+    right: 0;
+    background: $color-light-background;
+    top: 0;
+    z-index: 1002;
+    border-left: $border-lighter;
+    box-shadow: 0 -1px 24px rgba(0, 0, 0, 0.4);
+}
+#menu-container {
+    -webkit-touch-callout: none;
+    .close-btn {
+        display: none;
+        position: absolute;
+        top: max(13px, env(safe-area-inset-top));
+        left: -44px;
+        background: url('#{$path-to-img}x.svg') no-repeat center;
+        background-size: 16px;
+        z-index: 1000;
+    }
+}
+.button-list {
+    overflow-y: auto;
+    padding-top: 10px;
+    height: calc(100% - 37px);
+
+    > li {
+        padding: 6px 18px;
+        @include text-overflow-ellipsis;
+
+        &:not(.inactive):hover {
+            background: #f6f6f6 50% 50% repeat-x;
+            cursor: pointer;
+        }
+        &.inactive > img {
+            background-color: $color-toolbar-icons-inactive !important;
+            border-color: $color-toolbar-icons-inactive !important;
+            cursor: auto;
+        }
+        &.active {
+            color: $color-dark-font;
+            > img {
+                width: 28px;
+                height: 28px;
+                border: 1px solid $color-toolbar-icons !important;
+                box-shadow: 0 0 0 2px hsl(0, 0%, 80%), 0 0 0 2px hsl(0, 0%, 90%);
+            }
+        }
+        > img {
+            background-color: $color-toolbar-icons;
+            width: 30px;
+            height: 30px;
+            margin-right: 7px;
+            vertical-align: middle;
+            border-radius: 15px;
+        }
+    }
+}
+.menu-header {
+    border-bottom: $border-light;
+    padding: max(18.5px, env(safe-area-inset-top)) 18.5px 18.5px;
+    @include flex-row-centered;
+}
+.menu-body {
+    height: calc(100% - 72px - max(18.5px, env(safe-area-inset-top)));
+}
+.menu-footer {
+    background: white;
+    border-top: $border-light;
+    padding: 4px 18px max(4px, env(safe-area-inset-bottom));
+    color: #585858;
+    position: absolute;
+    bottom: 0;
+    width: calc(100% - 36px);
+    @include text-overflow-ellipsis;
+}
+#map-inactive-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    @include size(100%);
+    z-index: 1001;
+    background-color: #000;
+    opacity: 0.3;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}

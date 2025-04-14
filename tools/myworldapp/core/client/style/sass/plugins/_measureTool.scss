@@ -1,0 +1,32 @@
+#measurement-tool-brief {
+    display: none;
+    min-height: 0;
+    height: 68px;
+    z-index: 10;
+    background: none;
+    box-shadow: none;
+}
+.measure-tool-label {
+    padding-right: 4px;
+}
+.measure-tool-measure {
+    height: 32px;
+    margin: 5px 0;
+
+    > span {
+        height: 32px;
+        vertical-align: sub;
+        display: inline-block;
+    }
+    select {
+        padding: 3px;
+        vertical-align: -8px;
+        width: 100%;
+    }
+}
+
+.measure-tool-calc {
+    width: 137px;
+    word-wrap: break-word;
+    padding-left: 4px;
+}

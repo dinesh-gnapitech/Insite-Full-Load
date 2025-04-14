@@ -1,0 +1,61 @@
+select.hidden {
+    display: none;
+}
+.simple-clause-fields-container {
+    .simple-clause-fields {
+        height: 34px;
+        width: 100%;
+
+        .query-value,
+        .query-operator {
+            &:not(.hidden) {
+                display: flex;
+                align-self: center;
+                background: transparent;
+            }
+        }
+
+        .query-field {
+            flex-grow: 1;
+            width: auto;
+        }
+        .query-value input {
+            width: calc(100% - 14px);
+        }
+
+        .array-field-editor {
+            display: flex;
+            border-radius: 3px;
+            button {
+                padding: 0 8px;
+                background-color: transparent;
+                cursor: pointer;
+            }
+            & > * {
+                border: none;
+                box-shadow: none;
+            }
+            input.text {
+                flex-grow: 2;
+            }
+        }
+    }
+    & > .ui-button {
+        padding: 7px 12px !important;
+    }
+}
+.ad-hoc-query-message {
+    width: 100%;
+    .message-content {
+        padding: 12px 12px 20px;
+        font-size: 1.2em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    &.results-link {
+        cursor: pointer;
+        color: #0079c1;
+        font-weight: 600;
+    }
+}

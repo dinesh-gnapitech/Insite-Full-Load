@@ -1,0 +1,295 @@
+@import '../layouts/_variables';
+@import '../base/phone/_globals';
+body {
+    @include no-user-select;
+}
+.bottom {
+    text-align: center;
+}
+.bottom,
+.overlay-container {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    background: $color-light-background;
+    z-index: 1001;
+    display: none;
+    box-shadow: 0px -5px 5px 0px rgba(0, 0, 0, 0.2);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.page {
+    display: none;
+    z-index: 1;
+    top: 0;
+    .page-content {
+        width: 100%;
+        position: absolute;
+        top: 47px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+}
+.full-page {
+    position: absolute;
+    @include size(100%);
+    background: $color-light-background;
+    z-index: 10000;
+}
+.page-with-map {
+    position: absolute;
+    top: 33%;
+    @include size(100%, 67%);
+    background: $color-light-background;
+    z-index: 10000;
+}
+//Adding it here since it is used in multiple components
+.master-layer-icon {
+    background: url(#{$path-to-img}master-layer.svg) no-repeat center transparent;
+    background-size: 16px;
+    @include size(16px);
+    position: absolute;
+    right: 45px;
+    top: 50%;
+    margin-top: -8px;
+}
+/*------Map------*/
+.map-container {
+    @include size(100%);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    //Hide blue highlight on map touch
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+#page-map {
+    display: block;
+}
+
+/*------No features found alert------*/
+.bottom-pane-alert {
+    width: calc(100% - 120px);
+    display: inline-block;
+    font-size: 1.2em;
+    text-align: left;
+    padding: 12px 0;
+}
+/*
+ * === Over-riding jQuery UI styles ===
+ */
+.ui-widget {
+    input,
+    select,
+    textarea,
+    button {
+        font-family: inherit;
+    }
+}
+/*-----React components-----*/
+@import '../components/phone/_reactUIComponents';
+
+/*-------------------------------------*/
+#results-loading {
+    display: none;
+}
+#img-loading {
+    margin: 4px 0 0;
+}
+
+/*
+ * --- search ---
+ */
+@import '../components/_search';
+@import '../components/phone/_search';
+@import '../components/phone/_selectionInfo';
+
+/*-----Details page-----*/
+
+@import '../components/_detailsTab';
+@import '../components/phone/_details';
+
+/*-----Dialog Popup-----*/
+
+@import '../components/phone/_dialog';
+
+/*
+ * --- Feature Editing ---
+ */
+@import '../components/_featureEdit';
+@import '../components/_referenceFieldEditor';
+@import '../components/phone/_featureEdit';
+@import '../components/phone/_coordinatesDialog';
+@import '../components/phone/_credentialsComponent';
+#feature-header {
+    display: none; /*Since this element comes from the details control and the phone layout has its own header*/
+}
+
+/*
+ * === LAYERS OVERLAY ===
+ */
+@import '../components/_layers';
+@import '../components/_addLayers';
+@import '../components/phone/_layers';
+/*
+ * === NAVIGATION BAR ===
+ */
+@import '../components/phone/_navigationBar';
+
+/*
+ * === STREETVIEW  & INTERNALS ===
+ */
+@import '../components/_streetviewAndInternals';
+@import '../components/phone/_streetview';
+/*
+ * === MULTIPLE RESULTS ===
+ */
+@import '../components/_resultsList';
+
+@import '../components/_tooltip';
+
+#results-content-table {
+    height: 100%;
+}
+.tbl-results td {
+    padding: 6px 3px;
+}
+
+/* Details tab*/
+.panel-icon {
+    @include background-norepeat-center;
+    cursor: pointer;
+    border-radius: 23px;
+    height: 24px;
+    width: 24px;
+    padding: 5px;
+}
+
+/*
+ * === MESSAGES ===
+ */
+@import '../components/_messages';
+
+/*
+ * --- logo ---
+ */
+@import '../components/_logo';
+@import '../components/phone/_logo';
+
+/**
+ * --- Menu ---
+ */
+@import '../components/phone/_menu';
+
+/*
+ * === OPEN LAYERS CONTROLS: Over-riding leaflet style ===
+ */
+@import '../components/_olControls';
+@import '../components/phone/_olControls';
+/*------------------- */
+
+.map-btn {
+    @include size(46px);
+    background-size: 27px;
+    @include background-norepeat-center;
+    z-index: 1000;
+    position: absolute;
+    top: max(10px, env(safe-area-inset-top));
+    background-color: $color-toolbar-icons;
+    border-radius: 40px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 -1px 0 rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+    &:not(.inactive):hover {
+        background-color: $color-primary;
+    }
+    &.active,
+    &.active:hover {
+        box-shadow: 0 0 0 1px #eeeeee, 0 0 0 3px $color-toolbar-icon-active-circle;
+    }
+}
+#menu-btn {
+    background-image: url('#{$path-to-toolbar-img}phone-menu-btn.svg');
+    right: 10px;
+}
+#text-search-btn {
+    background-image: url('#{$path-to-toolbar-img}text-search.svg');
+    left: 10px;
+    display: none;
+    cursor: pointer;
+}
+
+/*--------Overlay dialog (used in mapLink, geomDraw etc.)-----*/
+@import '../components/phone/_overlay';
+
+/*------- Directions --------*/
+@import '../components/_directions';
+@import '../components/phone/_directions';
+
+/*----Tabs----*/
+@import '../components/_tabControl';
+.tabControl_nav {
+    li {
+        padding: 10px;
+    }
+}
+.tabControl_tab_space {
+    margin-top: 0;
+}
+
+@import '../plugins/phone/_createFeature';
+@import '../plugins/phone/_mapLink';
+
+@import '../components/phone/_basemaps';
+@import '../vendor/phone/_uiDialog';
+@import '../components/_softKeyboardInput';
+@import '../components/phone/_notifications';
+@import '../components/phone/_map';
+
+/*----Admin Notifications----*/
+@import '../plugins/_adminNotifications';
+.admin-notifications-launcher {
+    display: inline-block;
+    background-size: 30px;
+    @include size(30px);
+}
+
+/*---Sync Plugins---*/
+.sync-plugin-icon.checking {
+    background-size: 36px;
+}
+@import '../components/_contextMenu';
+@import '../components/_tileIdLayer';
+@import '../components/_widgets';
+
+@import '../components/_uiComponents';
+@import '../components/_datePicker';
+
+/*-------Buttons-------*/
+.ui-button {
+    height: 44px;
+}
+
+@import '../components/_userGroups';
+@import '../components/_webcam';
+@import '../components/_mapDoodle';
+
+/*--- Plugins that may be made available for phone ---*/
+@import '../components/_tabPanel';
+@import '../components/_relatedFeatures';
+@import '../components/_gpsStatus';
+@import '../plugins/_networkTrace';
+
+/*
+ * === MEDIA QUERIES FOR SCREEN SIZES LOWER THAN 700px ===
+ */
+@media screen and (max-width: 700px) {
+    @import '../components/phone/adHocQueryCompact';
+}
+
+/*
+ * === MEDIA QUERIES FOR SCREEN SIZES GREATER THAN 700px ===
+ */
+@media screen and (min-width: 700px) {
+    @import '../components/adHocQuery';
+    @import '../components/phone/adHocQueryRegular';
+}

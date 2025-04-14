@@ -1,0 +1,19 @@
+.system-settings-panels {
+    &.ant-collapse.ant-collapse-borderless > .ant-collapse-item {
+        & > .ant-collapse-header {
+            display: inline-flex;
+            font-weight: 500;
+            font-size: 16px;
+            padding-top: 16px;
+            padding-bottom: 16px;
+            .ant-collapse-arrow {
+                margin-top: 5px;
+            }
+        }
+
+        & > .ant-collapse-content {
+            border-top: 1px solid #d9d9d9;
+            padding-top: 10px;
+        }
+    }
+}

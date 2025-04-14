@@ -1,0 +1,12 @@
+{
+   "name": "google",
+   "external_name": "{:google_datasource_ex_name}",
+   "description": "{:google_datasource_desc}",
+   "type": "google",
+   "spec": {
+      "placesAutoCompleteCountry": "",
+      "client": null,
+      "channel": null,
+      "libraryUrlParams": {}
+   }
+}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>myWorld JS API Tests</title>
+        <link rel="stylesheet" type="text/css" href="bundles/styles/myWorld-lib.bundle.css?${build_version}">
+        <link rel="stylesheet" type="text/css" href="bundles/styles/myWorld-client.bundle.css?${build_version}">
+        <link rel="stylesheet" type="text/css" href="bundles/applications/myWorld-applications.bundle.css?${build_version}">
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="text/javascript" src="modules/dev_tools/lib/just-output.js"></script>
+        <script type="text/javascript" src="modules/dev_tools/lib/just-output-gui.js"></script>
+        <script type="text/javascript" src="bundles/client/myWorld-lib.js"></script>
+        <script type="text/javascript" src="bundles/client/myWorld-client.js"></script>
+        <script type="text/javascript" src="bundles/tests/${module}.tests.bundle.js"></script>
+    </head>
+    <body>
+        <script>jo.runTests(null, 'bundles/tests/${module}/tests/js/results');</script>
+    </body>
+</html>

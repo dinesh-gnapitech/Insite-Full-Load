@@ -1,0 +1,76 @@
+body {
+    font-size: 14px;
+}
+.checkbox {
+    width: 18px;
+    height: 18px;
+}
+.layer-checkbox-container,
+.group-checkbox,
+.layer-list-delete {
+    margin-top: -8.5px;
+}
+/*
+ * --- Leaflet layer control ---
+ */
+.leaflet-control-layers-base label {
+    padding: 10px 16px;
+}
+
+/*
+ * --- Create object and Manage bookmark dialog list ---
+ */
+.createFeature-menu > li,
+#bookmark-list-accordion > .bookmark-item .bookmarkBrief {
+    line-height: 2.5;
+}
+
+/*
+ * --- Bigger clickable areas for details panel and feature editors ---
+ */
+tr.atts th {
+    line-height: 18px;
+}
+input.text,
+.input-image-btn {
+    height: 36px;
+}
+select.text {
+    height: 38px;
+}
+.thumb-container {
+    height: 34px;
+}
+.thumb,
+.thumb-clear {
+    width: 34px;
+}
+.thumb-file-size {
+    font-size: 12px;
+    line-height: 34px;
+}
+.focused-select-menu > li {
+    padding: 12px 10px;
+    min-width: 30px;
+    height: 14px;
+    vertical-align: middle;
+}
+.tabControl_nav li {
+    padding: 12px 6px;
+}
+.ui-widget {
+    font-size: 1em;
+}
+.overMapButton {
+    height: 32px;
+    margin: 15px;
+    width: 32px;
+}
+.expandMoreButton,
+.shrinkHalfButton {
+    top: 48px;
+}
+#street-view-hideMarkersButton,
+#street-view-showMarkersButton {
+    top: 96px;
+}

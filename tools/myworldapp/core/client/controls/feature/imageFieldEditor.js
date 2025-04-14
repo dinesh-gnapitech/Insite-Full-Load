@@ -1,0 +1,263 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import { getImageFormatFor } from 'myWorld/base/util';
+import { WebcamDialog } from 'myWorld/controls/webcamDialog';
+import { FieldEditor } from './fieldEditor';
+import { readImageFileData, resizeAndRotateImage } from './imageUtils';
+import cameraImg from 'images/camera.svg';
+import folderImg from 'images/folder.svg';
+import * as Browser from 'myWorld/base/browser';
+
+/**
+ * Editor for fields of type image<br/>
+ * Renders a image file browser button, a thumbnail to show the selected image and the selected image size
+ * @name ImageFieldEditor
+ * @constructor
+ * @extends {FieldEditor}
+ */
+export class ImageFieldEditor extends FieldEditor {
+    static {
+        this.prototype.tagName = 'div';
+        this.prototype.className = 'image-input';
+
+        this.prototype.events = {
+            'click .field-edit-btn': 'browseFiles',
+            'click .thumb-clear': 'clear'
+        };
+    }
+
+    constructor(owner, feature, fieldDD, options) {
+        super(owner, feature, fieldDD, options);
+        this.imageBlob = this.fieldValue; //this caches the image info that is or needs to be stored in the db.
+        this.imageInput = $('<input/>', { type: 'file', accept: 'image/*' });
+        this.imageInput.appendTo(this.$el); //hidden via css
+        this.photoButton = $('<button/>', { class: 'field-edit-btn' })
+            .text(this.msg('add_image'))
+            .button()
+            .appendTo(this.$el);
+
+        this.thumbnailImage = $('<img/>', { class: 'thumb' });
+        this.fileSizeIndicator = $('<span/>', { class: 'thumb-file-size' });
+
+        this.thumbnail = $('<div/>', { class: 'thumb-container' })
+            .append(this.thumbnailImage)
+            .append(this.fileSizeIndicator)
+            .append($('<span/>', { class: 'thumb-clear' }))
+            .appendTo(this.$el);
+
+        if (this.fieldValue) {
+            // show the value in a thumbnail and its size next to it
+            const imageFormat = getImageFormatFor(this.fieldValue);
+            this.thumbnailImage.attr('src', `data:image/${imageFormat};base64,${this.fieldValue}`);
+            this.fileSizeIndicator.text(
+                this.msg('image_size', {
+                    size: this.feature.displayValues[this.fieldDD.internal_name]
+                })
+            );
+            this.toggleThumbnail(true);
+        }
+
+        this.el.onchange = event => {
+            // Get a reference to the taken picture or chosen image
+            const files = event.target.files;
+            if (files?.length > 0) {
+                readImageFileData(files[0], fieldDD)
+                    .then(blob => {
+                        this._displayImage(blob);
+                    })
+                    .catch(error => {
+                        console.error(error.message);
+                    });
+            }
+        };
+    }
+
+    /**
+     * Passes on the click event to the file input element to launch the file browser/camera
+     */
+    browseFiles() {
+        const isIOSNative = window.Capacitor?.platform == 'ios';
+        if (Browser.ipad || Browser.iphone || isIOSNative) {
+            // For iOS
+            this._activateDefaultInput();
+        } else {
+            if (!this.actionChooser) this.createActionChooser();
+            this.actionChooser.dialog('open');
+        }
+    }
+
+    /**
+     * Helper function that puts the <input> into file browser mode, then activates it
+     * @private
+     */
+    _activateDefaultInput() {
+        this.imageInput.removeAttr('capture').trigger('click');
+    }
+
+    /**
+     * Helper function that puts the <input> into camera capture mode, then activates it
+     * @private
+     */
+    _activateCameraInput() {
+        this.imageInput.attr('capture', 'camera').trigger('click');
+    }
+
+    /**
+     * Creates photo upload option dialog to pick between Camera and Browse options
+     */
+    createActionChooser() {
+        this.webcam = new WebcamDialog(this, {
+            callback: imageData => {
+                //  Convert the base64 image into an img and then process it
+                const img = new Image();
+                img.onload = () => {
+                    resizeAndRotateImage(img, img.width, img.height, null, this.fieldDD).then(
+                        this._displayImage.bind(this)
+                    );
+                };
+                img.src = imageData;
+            }
+        });
+
+        this.actionChooser = $('<ul>', { class: 'photo_upload_options_dialog noStyleList' }).dialog(
+            {
+                modal: true,
+                autoOpen: false,
+                width: 'auto',
+                resizable: false,
+                position: { my: 'center', at: 'top+160', of: window },
+                title: this.msg('choose_photo_upload_option_title')
+            }
+        );
+
+        $(`<li><img src="${cameraImg}"/></li>`)
+            .append(this.msg('camera'))
+            .on('click', () => {
+                const isAndroidNative = window.Capacitor?.platform == 'android';
+                if (Browser.android || isAndroidNative) {
+                    this._activateCameraInput();
+                } else {
+                    this.webcam.open();
+                }
+                this.actionChooser.dialog('close');
+            })
+            .appendTo(this.actionChooser);
+
+        $(`<li><img src="${folderImg}"/></li>`)
+            .append(this.msg('files'))
+            .on('click', () => {
+                this._activateDefaultInput();
+                this.actionChooser.dialog('close');
+            })
+            .appendTo(this.actionChooser);
+    }
+
+    /**
+     * Clears the selected image from the image editor
+     */
+    clear() {
+        if (this._isReadonly) return;
+
+        this.toggleThumbnail(false);
+        this.imageBlob = null;
+    }
+
+    /**
+     * Show/Hide the thumbnail
+     * @param  {boolean} show Whether to show the thumbnail or hide it
+     */
+    toggleThumbnail(show) {
+        this.thumbnail.css('display', show ? 'inline-block' : 'none');
+        this.photoButton.button(
+            'option',
+            'label',
+            show ? this.msg('update_image') : this.msg('add_image')
+        );
+    }
+
+    getValue() {
+        return this.imageBlob || null;
+    }
+
+    /**
+     * Enables or disables the associated inputs to match the given readonly value
+     * @param {boolean} readonly
+     */
+    setReadonly(readonly = false) {
+        if (this._isReadonly === readonly) return;
+        this._isReadonly = readonly;
+
+        this.$el?.find('button').prop('disabled', readonly);
+        this.$el?.find('.thumb-container').css('opacity', readonly ? 0.5 : 1);
+    }
+
+    //display image and size in thumbnail when the image is loaded
+    _displayImage(info) {
+        //Assign the image source to the dummy image element and the thumbnail
+        if (info.blob) {
+            const url = URL.createObjectURL(info.blob);
+            this.thumbnailImage.attr('src', url);
+            //  Once the info is loaded into the image, we don't need the oject anymore, get rid of it here to reduce memory
+            this.thumbnailImage.one('load', () => {
+                URL.revokeObjectURL(url);
+            });
+        } else {
+            //  Reconstruct the full base64 string if the file blob isn't available
+            this.thumbnailImage.attr('src', 'data:' + info.type + ';base64,' + info.base64);
+        }
+        this.imageBlob = info.base64;
+
+        const baseSize = info.blob ? info.blob.size : (info.base64.length * 3) / 4;
+        const fileSize = parseInt(baseSize / 1024, 10); //image size in KB
+
+        this.fileSizeIndicator.text(this.msg('image_size', { size: fileSize }));
+        this.toggleThumbnail(true);
+
+        this._changed();
+    }
+
+    _rotateCanvas(exif, ctx, width, height) {
+        if (exif) {
+            switch (exif.Orientation) {
+                case 2:
+                    // horizontal flip
+                    ctx.translate(width, 0);
+                    ctx.scale(-1, 1);
+                    break;
+                case 3:
+                    // 180 rotate left
+                    ctx.translate(width, height);
+                    ctx.rotate(Math.PI);
+                    break;
+                case 4:
+                    // vertical flip
+                    ctx.translate(0, height);
+                    ctx.scale(1, -1);
+                    break;
+                case 5:
+                    // vertical flip + 90 rotate right
+                    ctx.rotate(0.5 * Math.PI);
+                    ctx.scale(1, -1);
+                    break;
+                case 6:
+                    // 90 rotate right
+                    ctx.rotate(0.5 * Math.PI);
+                    ctx.translate(0, -height);
+                    break;
+                case 7:
+                    // horizontal flip + 90 rotate right
+                    ctx.rotate(0.5 * Math.PI);
+                    ctx.translate(width, -height);
+                    ctx.scale(-1, 1);
+                    break;
+                case 8:
+                    // 90 rotate left
+                    ctx.rotate(-0.5 * Math.PI);
+                    ctx.translate(-width, 0);
+                    break;
+            }
+        }
+    }
+}
+
+export default ImageFieldEditor;

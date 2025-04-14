@@ -1,0 +1,377 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import myw, { Util, msg } from 'myWorld/base';
+import { Control } from 'myWorld/base/control';
+import { ControlOwnerMixin } from 'myWorld/base/controlOwnerMixin';
+import { EventsMixin } from 'myWorld/base/eventsMixin';
+import xImg from 'images/x.png';
+
+export class TabControl extends Control {
+    static {
+        this.include(EventsMixin, ControlOwnerMixin);
+
+        this.mergeOptions({
+            tabsState: {}
+        });
+    }
+
+    /**
+     * Adds click event listeners to the tab names.
+     * Initializes listeners for bus events.
+     * @class  A control to hold tab buttons and manage the corresponding controls.
+     * Listens for clicks on the tab "buttons" and for events on the application bus to activate the appropriate child Controls
+     * @param  {Application|Control}     owner       Owner of self
+     * @param  {tabControlOptions}              options
+     * @constructs
+     * @extends {Control}
+     * @mixes {ControlOwnerMixin}
+     */
+    constructor(owner, options) {
+        super(owner, options);
+
+        this.currentTabId = null;
+        this.tabs = {};
+
+        this.initUI();
+
+        /** Promise which be resolved when self is ready @type {Promise} */
+        this.initialized = this.addTabs(options.tabs);
+
+        this.switchToTab(options.initialTab);
+
+        this.invalidateSize();
+
+        //register application events
+        this.on('activateControl', data => {
+            const tabId = this._getTabIdForControl(data.control);
+            if (tabId) this.switchToTab(tabId);
+            this._setTabSpaceHeight();
+        });
+    }
+
+    initUI() {
+        this._tabButtons = $('<ul/>', { class: 'tabControl_nav noselect' });
+        this._tabSpace = $('<div/>', { class: 'tabControl_tabs' });
+
+        this.$el.append(this._tabButtons);
+        this.$el.append(this._tabSpace);
+    }
+
+    /**
+     * Creates the div elements for the tab Control and each of the tabs
+     * @param  {Array<tabDefinition>} tabDefinitions
+     * @return {Promise} Promise which will resolve when all the tabs have been initialized
+     */
+    addTabs(tabDefinitions) {
+        tabDefinitions.forEach(tab => this.createTab(tab));
+
+        return Promise.all(Object.values(this.tabs).map(t => t.initialized));
+    }
+
+    /**
+     * Creates a new tab, adding it as the last tab.  <br/>
+     * Loads the HTML and/or initialises the control specified in the tab definition
+     * @param  {tabDefinition} tabDef
+     * @return {Promise}        Fulfilled when the tab has completed its initialization
+     */
+    createTab(tabDef) {
+        const tab = {
+            def: tabDef
+        };
+        this.tabs[tabDef.id] = tab;
+
+        this._setTabButton(tab);
+        this._addTabContainer(tab);
+        if (tabDef.html) this._loadHtml(tab);
+        if (tabDef.control) this._instantiateControl(tab);
+        if (tabDef.object) {
+            tab.initialized = tabDef.object;
+            tab.control = tabDef.object;
+        }
+
+        return tab.initialized;
+    }
+
+    /**
+     * Either creates a new tab or replaces an existing one tab and switches to it. <br/>
+     * If no tab with specified id exists, it will be created. If a tab with the given id exists,
+     * it will replace or just switch to it, depending on the value of replace.
+     * @param {tabDefinition}   tabDef
+     * @param {boolean}         replace     Whether to replace an existing tab with same id or just switch to it
+     */
+    addTab(tabDef, replace) {
+        const tab = this.tabs[tabDef.id];
+        if (!tab) {
+            this.createTab(tabDef);
+        } else if (replace) {
+            //tab already exists, replace its label and contents
+            tab.def = tabDef;
+            this._setTabButton(tab);
+            if (tabDef.html) this._loadHtml(tab);
+            if (tabDef.control) this._instantiateControl(tab);
+        }
+
+        this.switchToTab(tabDef.id);
+    }
+
+    /**
+     * Switch the a tab to  the front.
+     * @param  {string}     switchToTabId   Id of the tab to bring to the front
+     */
+    switchToTab(switchToTabId) {
+        if (switchToTabId == this.currentTabId) return;
+        if (!this.tabs[switchToTabId]) return;
+        this._previousTabId = this.currentTabId;
+        this.currentTabId = switchToTabId;
+
+        //hide previous tab
+        let tab = this.tabs[this._previousTabId];
+        if (tab) {
+            tab.button.removeClass('foreground_tab').addClass('background_tab');
+            tab.div.hide();
+            if (tab.control?.visibilityChanged) {
+                try {
+                    tab.control.visibilityChanged(false);
+                } catch (error) {
+                    console.warn(
+                        `Error calling 'visibilityChanged' when switching from tab '${this._previousTabId}':`,
+                        error
+                    );
+                }
+            }
+        }
+
+        // show desired tab
+        tab = this.tabs[switchToTabId];
+        tab.button.removeClass('background_tab').addClass('foreground_tab');
+        tab.div.show();
+        if (tab.control?.visibilityChanged) {
+            try {
+                tab.control.visibilityChanged(true);
+            } catch (error) {
+                console.warn(
+                    `Error calling 'visibilityChanged' when switching to tab '${switchToTabId}':`,
+                    error
+                );
+            }
+        }
+        this.fire('change', { tabId: this.currentTabId });
+    }
+
+    /**
+     * Switch visible tab to be the leftmost tab
+     */
+    switchToFirstTab() {
+        const tabs = this.$('.tabControl_tab_space');
+        if (tabs.length > 0) {
+            const m = tabs[0].id.match(/(.+)-div_(.*)_tab-space/);
+            if (m.length > 2) this.switchToTab(m[2]);
+        }
+    }
+
+    _setTabButton(tab) {
+        if (!tab.button) {
+            tab.button = $('<li/>', { class: 'background_tab' });
+            this._tabButtons.append(tab.button);
+
+            //set the click handler
+            tab.button.click(this.switchToTab.bind(this, tab.def.id));
+        }
+        tab.title = tab.def.title || msg('Application', tab.def.titleMsg);
+
+        if (tab.def.removable) {
+            const closeButton = $(`<img src="${xImg}" height="8" weight="8">`);
+            closeButton.click(this._removeTab.bind(this, tab));
+            tab.button.html(`${tab.title}&nbsp;&nbsp;`);
+            tab.button.append(closeButton);
+        } else {
+            tab.button.html(tab.title);
+        }
+
+        if (tab.def.draggable) this._makeTabDraggable(tab);
+    }
+
+    _addTabContainer(tab) {
+        const controlDef = tab.def.control,
+            controlOptions = controlDef?.[1];
+
+        tab.divId = controlOptions?.divId || `${this.options.divId}_${tab.def.id}_tab-space`;
+        tab.div = $('<div/>', { id: tab.divId, class: 'tabControl_tab_space' });
+
+        this._tabSpace.append(tab.div);
+    }
+
+    _loadHtml(tab) {
+        const url = `${tab.def.html}?${myw.buildVersion}`; //include version as param to bust any browser cached versions
+        tab.initialized = Util.loadInto(url, tab.div).then(
+            myw.translate.bind(undefined, tab.def.id)
+        );
+    }
+
+    _instantiateControl(tab) {
+        const controlDef = tab.def.control;
+        const ControlClass = controlDef?.[0];
+        const controlOptions = controlDef?.[1];
+        const layout = this.app.layout;
+        const controlsPrevState = layout.options.controlsState;
+        const controlPreviousState = controlsPrevState?.[tab.def.id];
+        const instantiateControl = (tab, ControlClass, controlOptions) => {
+            tab.control = new ControlClass(this, controlOptions);
+            return tab.control.initialized;
+        };
+
+        controlOptions.divId = tab.divId;
+
+        Object.assign(controlOptions, controlPreviousState);
+
+        if (tab.def.html) {
+            //make sure any specific HTML has been loaded before instantiating the control
+            tab.initialized = tab.initialized.then(() =>
+                instantiateControl(tab, ControlClass, controlOptions)
+            );
+        } else {
+            //do it imediatelly so that code using tabControl without html doesn't need to wait for initialized
+            tab.initialized = instantiateControl(tab, ControlClass, controlOptions);
+        }
+    }
+
+    /**
+     * Removes the tab from the UI and closes its control
+     * @param  {object} tab
+     * @private
+     */
+    _removeTab(tab) {
+        this._closeTab(tab);
+        tab.div.remove();
+        delete this.tabs[tab.def.id];
+
+        tab.control.close?.();
+        tab.def.onClose?.();
+    }
+
+    /**
+     * Removes a tab from the UI
+     * Removes the button and switches to the previous active tab
+     * @param  {object} tab
+     * @private
+     */
+    _closeTab(tab) {
+        if (tab.def.id === this.currentTabId) {
+            this.switchToTab(this._previousTabId || this.options.initialTab);
+        }
+        tab.button.remove();
+    }
+
+    _makeTabDraggable(tab) {
+        tab.button.draggable({
+            distance: 10,
+            stop: event => {
+                this._closeTab(tab);
+
+                //Open tab in dialog
+                const dialog = tab.div.dialog({
+                    modal: false,
+                    title: tab.title,
+                    width: tab.div.width(),
+                    height: tab.div.height(),
+                    maxHeight: tab.div.height(),
+                    position: { my: 'left top', at: 'left top', of: event }
+                });
+
+                dialog.off('dialogclose').on('dialogclose', event => {
+                    dialog.dialog('destroy');
+
+                    this._removeTab(tab);
+                });
+            }
+        });
+    }
+
+    /**
+     * Returns the id of a given control
+     * @param  {Control}    control
+     * @return {string}        The tab id matching the control
+     * @private
+     */
+    _getTabIdForControl(control) {
+        if (!this.tabs) return;
+
+        for (const [name, tab] of Object.entries(this.tabs)) {
+            const acontrol = tab.control;
+
+            if (control == acontrol) {
+                return name;
+            }
+        }
+    }
+
+    /**
+     * Calls the visibilityChanged() method on the tabs' controls
+     * @param  {boolean} isVisible
+     */
+    visibilityChanged(isVisible) {
+        for (const tab of Object.values(this.tabs)) {
+            const acontrol = tab;
+            acontrol?.visibilityChanged?.(isVisible);
+        }
+    }
+
+    /**
+     * Called by the layout when the available area for self changes
+     */
+    invalidateSize() {
+        this._setTabSpaceHeight();
+
+        //inform the tab controls that their available size has changed
+        Object.values(this.tabs).forEach(tab => {
+            tab.control?.invalidateSize?.();
+        });
+    }
+
+    getChildControls() {
+        return Object.entries(this.tabs).reduce((prev, [key, tab]) => {
+            if (tab.control) prev[key] = tab.control;
+            return prev;
+        }, {});
+    }
+
+    remove() {
+        const controls = this.getChildControls();
+        for (let control of Object.values(controls)) {
+            control.remove();
+        }
+        super.remove();
+    }
+
+    _setTabSpaceHeight() {
+        const height = this.$el.height() - this._tabButtons.height();
+        // We need to set the height to the tabSpace only when this.$el has a position: absolute
+        // Child elements of absolutely positioned containers (for eg: jquery-ui-layout panels) don't take their parents' height.
+        if (this.$el.css('position') === 'absolute' && height) {
+            this._tabSpace.height(height);
+        }
+    }
+}
+
+/**
+ * @typedef tabControlOptions
+ * @property {string}                   divId       Id of the div where self should be created
+ * @property {Array<tabDefinition>}     tabs        Definition of the tabs to create
+ * @property {string}                   initialTab
+ */
+
+/**
+ * @typedef tabDefinition
+ * @property {string}               id          Id of the div where self should be created
+ * @property {string}               title       Text to be displayed as the title of the tab
+ * @property {string}               [titleMsg]  Alternativate to the title property - name of message to use as title of the tab (Application message group)
+ * @property {controlDefinition}    [control]   Specification of the control that will manage this tab. <br/>
+ *                                              If the control implements an activate() method it will be called when the tab is activated. <br/>
+ *                                              If the control implements an close() method it will be called when the tab is closed<br/>
+ * @property {string}               [html]      Url of an html file to load as the contents of the tab
+ * @property {boolean}              [removable=false]   Whether the tab should have a button to close it or not
+ * @property {boolean}              [draggable=false]   Whether the tab should be draggable into a popup or not
+
+ */
+
+export default TabControl;

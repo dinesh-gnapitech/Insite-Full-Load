@@ -1,0 +1,11 @@
+.myw-bottom-btns {
+    position: fixed;
+    padding: 10px 10px 30px 20px;
+    bottom: 10px;
+    width: 100%;
+    border-top: 1px solid $colour-table-border;
+    background-color: white;
+    button {
+        margin-right: 5px;
+    }
+}

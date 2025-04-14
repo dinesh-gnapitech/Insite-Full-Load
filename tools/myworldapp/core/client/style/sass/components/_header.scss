@@ -1,0 +1,16 @@
+#header-content {
+    height: 100%;
+    div {
+        &.left {
+            display: inline-flex;
+            height: 65px;
+            float: left;
+            padding: 18px 0 0 10px;
+        }
+        &.right {
+            height: 100%;
+            float: right;
+            text-align: right;
+        }
+    }
+}

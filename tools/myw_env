@@ -1,0 +1,43 @@
+#!/bin/bash
+# Bash wrapper to myWorld tilestore admin command
+
+# ENH: Avoid local vars .. or change callers not to source self
+
+MYW_ENV_HERE=$(dirname ${BASH_SOURCE[0]})
+
+# Include myw_env_site if present
+MYW_ENV_SITE=${MYW_ENV_HERE}/$(basename ${BASH_SOURCE[0]})_site
+if [[ -f ${MYW_ENV_SITE} ]]
+then
+   source $MYW_ENV_SITE
+fi
+
+# Determine plaform type (for externals)
+if [[ ${OSTYPE} == darwin* ]]
+then
+	PLATFORM='osx/'
+else
+	PLATFORM=''
+fi
+
+# Set python environment
+export MYW_PRODUCT_ROOT_DIR=$MYW_ENV_HERE/../WebApps
+export MYW_PYTHON_SITE_DIRS=$MYW_ENV_HERE/../Externals/${PLATFORM}lib/python3.10/site-packages';'$MYW_PYTHON_SITE_DIRS
+
+if [ "${MYW_PYTHON}" ]
+then
+    export PATH=${MYW_PYTHON}:${PATH}
+fi
+
+# Make shared libs available
+export LD_LIBRARY_PATH=$MYW_ENV_HERE/../Externals/${PLATFORM}shared_lib
+
+# Set Java environment
+BIN_DIR=$MYW_ENV_HERE/../WebApps/myworldapp/core/server/base/tilestore/java
+export CLASSPATH=${BIN_DIR}:${BIN_DIR}/pngj-2.1.1/pngj.jar:${BIN_DIR}/sqlite4java-392/sqlite4java.jar:${CLASSPATH}
+
+if [ "${MYW_JAVA}" ]
+then
+    export PATH=${MYW_JAVA}:${PATH}
+fi
+

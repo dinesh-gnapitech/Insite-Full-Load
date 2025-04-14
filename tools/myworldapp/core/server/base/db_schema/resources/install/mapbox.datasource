@@ -1,0 +1,9 @@
+{
+   "name": "mapbox",
+   "external_name": "{:mapbox_datasource_ex_name}",
+   "description": "{:mapbox_datasource_desc}",
+   "type": "generic_tiles",
+   "spec": {
+      "baseUrl": "http://a.tiles.mapbox.com/"
+   }
+}

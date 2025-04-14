@@ -1,0 +1,12 @@
+{
+   "name": "{:osm_layer_name}", 
+   "category": "basemap", 
+   "description": "{:osm_layer_desc}", 
+   "datasource": "mapbox", 
+   "spec": {
+      "relativeUrl": "v3/MAPBOX_MAP_ID_HERE/{z}/{x}/{y}.png"
+   }, 
+   "min_scale": 0, 
+   "max_scale": 20, 
+   "attribution": "<a href=\"https://www.mapbox.com/about/maps/\" target=\"_blank\">&copy; Mapbox &copy; OpenStreetMap</a> <a class=\"mapbox-improve-map\" href=\"https://www.mapbox.com/map-feedback/\" target=\"_blank\">{:improve_map}</a>"
+}

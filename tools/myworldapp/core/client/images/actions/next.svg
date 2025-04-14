@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 19.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   viewBox="-3 5 40 40"
+   xml:space="preserve"
+   sodipodi:docname="next.svg"
+   width="40"
+   height="40"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"><metadata
+   id="metadata11"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+   id="defs9" /><sodipodi:namedview
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1"
+   objecttolerance="10"
+   gridtolerance="10"
+   guidetolerance="10"
+   inkscape:pageopacity="0"
+   inkscape:pageshadow="2"
+   inkscape:window-width="1920"
+   inkscape:window-height="1017"
+   id="namedview7"
+   showgrid="false"
+   inkscape:zoom="14.75"
+   inkscape:cx="8"
+   inkscape:cy="18.847458"
+   inkscape:window-x="1912"
+   inkscape:window-y="-8"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="Layer_1" />
+<path
+   style="fill:#ffffff;stroke-width:1.52307689;fill-opacity:1"
+   d="M 0 0 L 0 40.134766 L 40.134766 40.134766 L 40.134766 0 L 0 0 z M 21.160156 11.640625 C 21.769387 11.640625 22.074291 11.945421 22.378906 12.402344 L 29.080078 18.646484 C 29.537001 19.103407 29.841797 19.560655 29.841797 20.017578 C 29.841797 20.626809 29.537001 20.931749 29.080078 21.388672 L 22.378906 27.785156 C 22.074291 28.089771 21.769387 28.546875 21.160156 28.546875 C 20.398618 28.546875 19.941406 27.937319 19.941406 27.175781 L 19.941406 22.912109 L 11.261719 22.912109 C 10.652488 22.912109 10.042969 22.302555 10.042969 21.541016 L 10.042969 18.646484 C 10.042969 17.884946 10.652488 17.277344 11.261719 17.277344 L 19.941406 17.277344 L 19.941406 13.011719 C 19.941406 12.402489 20.398618 11.640625 21.160156 11.640625 z "
+   transform="translate(-3,5)"
+   id="path4" />
+</svg>

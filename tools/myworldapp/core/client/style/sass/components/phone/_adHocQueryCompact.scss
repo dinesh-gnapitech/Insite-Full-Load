@@ -1,0 +1,141 @@
+.build-query-link {
+    color: $color-link-font;
+    font-weight: 300;
+    cursor: pointer;
+}
+.object-title,
+.query-title {
+    font-weight: 600;
+    margin: 10px 0;
+}
+.feature-type-select {
+    margin-top: 8px;
+    min-width: 400px;
+}
+.query-predicate-operator {
+    margin: 10px 0 4px 0;
+}
+.geom-clause {
+    padding: 8px 4px 6px 4px;
+}
+.array-field-editor {
+    background-color: #fff;
+    .ui-input {
+        background-color: #fff;
+    }
+    .ui-dialog-titlebar {
+        display: none;
+    }
+    .ui-dialog-content {
+        padding-top: 15px;
+    }
+    .ui-button {
+        padding: 7px 12px !important;
+    }
+}
+.array-list-container {
+    display: flex;
+    flex-direction: column;
+    > * {
+        margin-bottom: 4px;
+        width: calc(100% - 14px);
+    }
+    input {
+        width: calc(100% - 14px);
+    }
+}
+.join-clause {
+    margin-bottom: 10px;
+    .join-clause {
+        background: #eee;
+        padding: 9px;
+        border-radius: 2px;
+        margin-top: 9px;
+        border: 1px solid #ccc;
+    }
+    .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause .join-clause .join-clause {
+        background: #fff;
+    }
+    .join-clause .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause .join-clause .join-clause .join-clause {
+        background: #eee;
+    }
+}
+
+select.hidden {
+    display: none;
+}
+.simple-clause-fields-container {
+    display: flex;
+    align-items: center;
+    .simple-clause-fields {
+        flex-grow: 2;
+    }
+    .remove-simple-clause {
+        margin-right: 4px;
+    }
+    .add-simple-clause {
+        margin-left: 4px;
+    }
+    & > .ui-button {
+        padding: 7px 12px !important;
+        height: 38px;
+    }
+    .query-value > *,
+    .query-operator {
+        width: 100%;
+    }
+    .query-value input {
+        width: 100%;
+    }
+    .array-field-editor {
+        display: flex;
+        border-radius: 3px;
+        button {
+            padding: 0 8px;
+            background-color: transparent;
+            cursor: pointer;
+        }
+        & > * {
+            border: none;
+            box-shadow: none;
+        }
+        input.text {
+            flex-grow: 2;
+        }
+    }
+    .simple-clause-fields {
+        .query-operator,
+        .query-value {
+            margin-top: 4px;
+            textarea {
+                width: 100%;
+                resize: none;
+            }
+        }
+        &.validationHighlight {
+            border: none !important;
+            input {
+                border: 1px solid #df6f56;
+            }
+        }
+    }
+}
+.ad-hoc-query-message {
+    width: 100%;
+    .message-content {
+        padding: 12px 12px 20px;
+        font-size: 1.2em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    &.results-link {
+        cursor: pointer;
+        color: #0079c1;
+        font-weight: 600;
+    }
+}

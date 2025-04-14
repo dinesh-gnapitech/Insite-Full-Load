@@ -1,0 +1,109 @@
+#toolbar li {
+    @include no-user-select;
+    height: 40px;
+    width: 40px;
+    @include background-norepeat-center;
+    background-size: 40px;
+    border-radius: 30px;
+    cursor: pointer;
+
+    &.menu-button {
+        background-size: 50px;
+    }
+    &:not(.inactive):hover {
+        background-color: $color-primary;
+    }
+    &.active,
+    &.active:hover {
+        box-shadow: 0 0 0 1px #eeeeee, 0 0 0 3px $color-toolbar-icon-active-circle;
+    }
+}
+
+#toolbar > li,
+.toolbar-button-list .button-list > li > img {
+    background-color: $color-toolbar-icons;
+}
+
+#toolbar li.inactive,
+#toolbar li.inactive:hover,
+.toolbar-button-list .button-list > li.inactive > img {
+    background-color: $color-toolbar-icons-inactive !important;
+    border-color: $color-toolbar-icons-inactive !important;
+    cursor: auto;
+}
+
+ul.tools {
+    display: inline-block;
+
+    li {
+        list-style: none;
+        display: inline-block;
+        position: relative;
+        margin-right: 6px;
+        a {
+            text-decoration: none;
+            padding-right: 3px;
+        }
+    }
+}
+
+.button-list {
+    overflow-y: auto;
+
+    > li {
+        padding: 5px 10px;
+        white-space: nowrap;
+
+        &:hover,
+        &.active {
+            color: $color-dark-font;
+            background: #e2e2e2 50% 50% repeat-x;
+            cursor: pointer;
+        }
+        &.active {
+            font-weight: 600;
+        }
+        > img {
+            width: 25px;
+            height: 25px;
+            margin-right: 7px;
+            vertical-align: middle;
+            border-radius: 15px;
+        }
+    }
+}
+
+.button-list-container {
+    background-color: white;
+    padding: 6px 0;
+    z-index: 11;
+    position: absolute;
+    min-width: 150px;
+    border-radius: $border-radius-default;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+    > .arrow {
+        top: -11px;
+        right: 12px;
+        margin-left: -11px;
+        border-top-width: 0;
+        border-bottom-color: #999;
+        border-bottom-color: rgba(0, 0, 0, 0.25);
+
+        &:after {
+            top: 1px;
+            right: -10px;
+            margin-left: -10px;
+            content: ' ';
+            border-top-width: 0;
+            border-bottom-color: #fff;
+        }
+    }
+}
+/**
+ * -- Clear results plugin ---
+ */
+#toolbar #clear-results {
+    background-image: url('#{$path-to-toolbar-img}clear.svg') !important;
+}

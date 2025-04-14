@@ -1,0 +1,749 @@
+// Implements MyWorld Server interface for the native apps
+// Copyright: IQGeo Limited 2010-2023
+/* globals platform */
+import { trace } from 'myWorld-base';
+import { NativeServerBase, ApplicationController, LayerGroupController } from '../base';
+import { saveAs } from 'file-saver';
+import {
+    DDController,
+    FeatureController,
+    BookmarkController,
+    SearchController,
+    SelectController,
+    LayerController,
+    RelationshipController,
+    RenderLayerController,
+    NetworkController,
+    DeltaController,
+    GroupController
+} from '.';
+import * as routing from './routing';
+import { LocalTileLayer } from '../datasources/localTileLayer';
+import { LocalVectorTileLayer } from '../datasources/localVectorTileLayer';
+
+/**
+ * Server used by application page
+ */
+export class NativeServer extends NativeServerBase {
+    /**
+     * Current application's name. Sent to server as part of some requests
+     * @type {string}
+     */
+    get applicationName() {
+        return this._applicationName;
+    }
+
+    set applicationName(value) {
+        this._applicationName = value;
+        //inform DD so the cache is reset
+        this.initialized.then(() => {
+            this._dd.setApplication(this._applicationName);
+        });
+    }
+
+    /**
+     * Determines database version for all operations. empty string means master
+     * @type {string}
+     */
+    get delta() {
+        return this.view.delta;
+    }
+
+    set delta(value) {
+        this.view = this._db.view(value);
+    }
+
+    /*
+     * Get admin notifications
+     * Assumes it's logged in to server
+     * @param {number}sinceId  Notifications ID that marks the start of the notifications to show
+     */
+    async getAdminNotifications(sinceId) {
+        const masterServer = await this.getMasterViewServer();
+        return masterServer.getAdminNotifications(sinceId);
+    }
+
+    // ************************ IMPLEMENTATION OF DATASOURCE API  ************************
+
+    /**
+     * [ description]
+     * @param  {number} dsName          Datasource name
+     * @param  {[type]}   typesStr [description]
+     * @param  {Function} callback [description]
+     * @return {[type]}            Request promise
+     */
+    getDDInfoForTypes(dsName, typesStr) {
+        const ddController = new DDController(this.view);
+        return ddController.request(dsName, typesStr);
+    }
+
+    /**
+     * Performs a selection request to the myWorld database
+     * @param  {string}     worldOwnerUrn       If null defaults to geographical world
+     * @param  {LatLng}     selectionPoint      Point to use for the selection query
+     * @param  {number}   zoomLevel           Zoom level to choose a radius
+     * @param  {string[]}   selectedLayersIds   Array with the codes of the layers relevant for the selection
+     * @param  {number}   pixelTolerance      Tolerance in pixels
+     * @param  {object}     [options]
+     * @param  {string}     [options.schema]            If 'delta' only features in a delta will be returned
+     * @param  {string[]}   [options.featureTypes]      Feature types to consider
+     * @return {Promise<geojsonFeature[]>}  Promise for the list of the features that are selectable with the given parameters
+     */
+    selection(
+        worldOwnerUrn,
+        selectionPoint,
+        zoomLevel,
+        selectedLayersIds,
+        pixelTolerance,
+        options = {}
+    ) {
+        const selectController = new SelectController(this.view);
+
+        return selectController.selectNear(
+            worldOwnerUrn,
+            selectionPoint.lng,
+            selectionPoint.lat,
+            zoomLevel,
+            selectedLayersIds,
+            pixelTolerance,
+            options
+        );
+    }
+
+    /**
+     * Performs a selection request to the myWorld database
+     * @param  {LatLngBounds} bounds          Bounds to select inside of
+     * @param  {number}   zoomLevel           Zoom level to choose a radius
+     * @param  {string[]}   layerIds   Array with the codes of the layers relevant for the selection
+     * @param  {string}     limit               Max number of features to return
+     * @param  {object}     [options]
+     * @param  {string}     [options.schema]            If 'delta' only features in a delta will be returned
+     * @param  {string[]}   [options.featureTypes]      Feature types to consider
+     * @param  {string}     [options.worldId]       If null defaults to geographical world
+     */
+    selectBox(bounds, zoomLevel, layerIds, limit, options = {}) {
+        const { worldId, ...opts } = options;
+        const selectController = new SelectController(this.view);
+
+        return selectController.selectWithin(worldId, bounds, zoomLevel, layerIds, limit, opts);
+    }
+
+    /**
+     * Queries the database for a feature identified by its id
+     * @param  {string}             tableName Name of the table/feature
+     * @param  {number|string}     id        Id of the feature
+     * @param  {boolean}    includeLobs  Whether large object fields should be included or not
+     * @param  {string}             [delta]             Id of delta to obtain the feature from
+     */
+    getFeature(dsName, tableName, id, includeLobs, delta) {
+        const view =
+            delta !== undefined && delta != this.view.delta ? this._db.view(delta) : this.view;
+        const controller = new FeatureController(view);
+
+        return controller.get(dsName, tableName, id, {
+            displayValues: true,
+            includeLobs,
+            includeGeoGeometry: true,
+            delta
+        });
+    }
+
+    /**
+     * Gets Features for a specified table and optionally inside a bouding box
+     */
+    getFeatures(featureType, options) {
+        options = options || {};
+        options.dsName = options.dsName || 'myworld';
+        // server parameter is 0 based
+        options.offset = 'offset' in options ? options.offset - 1 : null;
+
+        const controller = new FeatureController(this.view);
+        return controller.getFeatures(options.dsName, featureType, options);
+    }
+
+    /**
+     * Returns features with given ids
+     * @param {string} featureType
+     * @param {string[]} ids
+     * @param {featureFetchOptions} options
+     */
+    getFeaturesByUrn(featureType, ids, options) {
+        options = options || {};
+        options.dsName = options.dsName || 'myworld';
+
+        const controller = new FeatureController(this.view);
+        return controller.getFeaturesByIds(options.dsName, featureType, ids, options);
+    }
+
+    /**
+     * Gets Features for a specified layer for vector rendering
+     * @param  {renderParams}   params   [description]
+     */
+    getLayerFeatures(params) {
+        let bboxes;
+        if (params.bounds instanceof Array) {
+            bboxes = params.bounds;
+        } else {
+            bboxes = [params.bounds];
+        }
+        const controller = new RenderLayerController(this.view);
+        return controller.getFeatures(params.layerName, bboxes, params);
+    }
+
+    /**
+     * Returns the features in a relationship with another given feature
+     * @param  {MyWorldFeature} feature          Feature for which we want the related records
+     * @param  {string} relationshipName Name of relationship (field)
+     * @param  {object} aspects
+     * @param  {boolean} aspects.includeLobs
+     * @param  {boolean} aspects.includeGeoGeometry
+     */
+    getRelationship(feature, relationshipName, aspects) {
+        const controller = new RelationshipController(this.view);
+        return controller.get(feature.getType(), feature.getId(), relationshipName, aspects);
+    }
+
+    /**
+     * Obtains features of a given type that are close to a point and within a tolerance
+     * @param  {[type]}   featureType Type of features to obtain
+     * @param  {LatLng} position
+     * @param  {Integer}   tolerance   Tolerance in meters
+     */
+    getFeaturesAround(featureType, position, tolerance) {
+        const controller = new FeatureController(this.view);
+        return controller.getFeaturesAround(featureType, position.lng, position.lat, tolerance);
+    }
+
+    /**
+     * Delete a feature by its id
+     * @param  {string}   tableName
+     * @param  {string}   recordId
+     */
+    async deleteFeature(tableName, recordId) {
+        const controller = new FeatureController(this.view);
+        const { res, table } = await controller.deleteFeature(tableName, recordId);
+        if (table.isTrackingChanges()) {
+            this._trackedFeatureChanged();
+        }
+        return res;
+    }
+
+    /**
+     * Insert a feature into a table
+     * @param  {string}   featureName
+     * @param  {object}   insertData
+     * @param  {boolean}   [update=false] If true, an id is provided and feature already exits, update it
+     */
+    async insertFeature(featureName, insertData, update = false) {
+        const controller = new FeatureController(this.view);
+        const { res, table } = await controller.insertFeature(featureName, insertData, update);
+        if (table.isTrackingChanges()) {
+            this._trackedFeatureChanged();
+        }
+        return res;
+    }
+
+    getFeaturesWithIds(tableName, ids) {
+        let promise = Promise.resolve();
+
+        const features = [];
+
+        for (const id of ids) {
+            promise = promise
+                .then(this.getFeature.bind(this, 'myworld', tableName, id, true))
+                .then(feature => {
+                    features.push(feature);
+                });
+        }
+
+        return promise.then(() => features);
+    }
+
+    /**
+     * Update a feature in a table
+     * @param  {string}   tableName  [description]
+     * @param  {string}   featureId
+     * @param  {object}   updateData
+     */
+    async updateFeature(featureName, featureId, updateData, handleError) {
+        const controller = new FeatureController(this.view);
+        const { res, table } = await controller.updateFeature(
+            featureName,
+            featureId,
+            updateData,
+            handleError
+        );
+        if (table.isTrackingChanges()) {
+            this._trackedFeatureChanged();
+        }
+        return res;
+    }
+
+    /**
+     *  Run (insert, delete, update) operations on multiple features within one transaction in the database
+     *  @param  {Array<TransactionItem>} operations Where transactionItem is of the form [op, featureType, MyWorldFeature]  transaction
+     *  @return {Promise<object>} ids
+     */
+    async runTransaction(operations) {
+        const controller = new FeatureController(this.view);
+        const result = await controller.runTransaction(operations);
+        if (result.changedTableBeingTracked) this._trackedFeatureChanged();
+        return { ids: result.ids };
+    }
+
+    /**
+     * Records the given db operations in the local database without change tracking.
+     * Disabling of change tracking means these changes won't trigger an upload of these changes from the device back to the master server.
+     * Meant to be used with operational data that updates too frequently to be updated via the regular sync process.
+     * Not to be used with versioned features
+     *  @param  {Array<TransactionItem>} operations Where transactionItem is of the form [op, featureType, MyWorldFeature]  transaction
+     *  @return {Promise<object>} ids
+     */
+    async runTransactionWithoutChangeTracking(operations) {
+        const controller = new FeatureController(this.view);
+        const result = await controller.runTransactionWithoutChangeTracking(operations);
+        return { ids: result.ids };
+    }
+
+    /**
+     * Update a collections of features with a given set of field/value pairs
+     * @param  {MyWorldFeature[]}   features
+     * @param  {object}   properties
+     * @param {object} [triggerChanges]
+     * @return {string[]}     List with urns of updated features {updated_features}
+     */
+    async bulkUpdateFeatures(features, properties, triggerChanges) {
+        const controller = new FeatureController(this.view);
+        const result = await controller.bulkUpdate(features, properties, triggerChanges);
+        if (result.changedTableBeingTracked) this._trackedFeatureChanged();
+        return { updated_features: result.updatedUrns };
+    }
+
+    /**
+     * Returns the networks a given feature can be part of
+     * @param  {MyWorldFeature} feature
+     * @return {Promise}         Network definition keyed on network name
+     */
+    getNetworksFor(feature) {
+        const controller = new NetworkController(this.view);
+        return controller.getNetworksFor(feature);
+    }
+
+    /**
+     * Find connected network objects
+     * @param {string}   network  Name of network to trace through
+     * @param {string}   featureUrn  Start feature urn
+     * @param {boolean}  options.direction Direction to trace in (upstream|downstream|both)
+     * @param {string}   options.resultType  Structure of results: 'features' or 'tree'
+     * @param {number}   [options.maxDist]  Max distance to trace to, in meters
+     * @param {string[]} [options.resultFeatureTypes]  Feature types to include in result
+     * @param {Object<string>} [options.filters]  Filters keyed on feature type
+     * @return {Promise<Array<Feature>>}  Connected features
+     */
+    traceOut(network, featureUrn, options) {
+        const controller = new NetworkController(this.view);
+        return controller.traceOut(network, featureUrn, options);
+    }
+
+    /**
+     * Find shortest path through a network
+     * @param {string}    network  Name of network to trace through
+     * @param {Feature}    feature  Start feature's urn
+     * @param {string}    toUrn  URN of destination feature
+     * @param {string}   options.resultType  Structure of results: 'features' or 'tree'
+     * @param {number}   [options.maxDist]  Max distance to trace to, in meters
+     * @return {Promise<Array<Feature>>}  Path to destination feature (empty if not reachable)
+     */
+    shortestPath(network, feature, toUrn, options) {
+        const controller = new NetworkController(this.view);
+        return controller.shortestPath(network, feature.getUrn(), toUrn, options);
+    }
+
+    getStartupInfo(applicationName) {
+        const appController = new ApplicationController(this.view);
+        return appController.getStartupInfo(applicationName);
+    }
+
+    /**
+     * Get the layer definition for a given layer name
+     * @param  {string} layerName
+     * @return {Object}           Object with the layer parameters as properties
+     */
+    getLayerWithName(layerName) {
+        const controller = new LayerController(this.view);
+        return controller.get(layerName);
+    }
+
+    /**
+     * Get all layer groups
+     */
+    getLayerGroups(applicationName) {
+        const lgController = new LayerGroupController(this.view);
+        return lgController.getAll();
+    }
+
+    /**
+     * Sends an external request to the myWorld server
+     * @param  {number}   dsName          Datasource name
+     * @param  {string}     requestParams   Parameters to send to the external selection server
+     * @param  {string}     [options.urlFieldName='url']    Name of property in datasource's spec that holds the base url for the request
+     * @param  {string}     [options.relativeUrl='']        Relative url to append to the base url
+     * @return {Promise<json>}              Json with the selected features
+     */
+    tunnelDatasourceRequest(layerId, requestParams, options) {
+        const controller = new LayerController(this.view);
+        return controller.externalRequest(layerId, requestParams, options);
+    }
+
+    /**
+     * [getBookmark description]
+     * @param  {[type]} id The id of the bookmark
+     */
+    getBookmark(id) {
+        const controller = new BookmarkController(this.view);
+        return controller.get(id);
+    }
+
+    getBookmarkByTitle(title) {
+        const controller = new BookmarkController(this.view);
+        return controller.getByTitle(this.getCurrentUsername(), title);
+    }
+
+    getBookmarksForUser() {
+        const controller = new BookmarkController(this.view);
+        return controller.getAllForUser(this.getCurrentUsername());
+    }
+
+    /**
+     * Creates a bookmark or if the current user has one with the same name, replaces it
+     * @param  {object} bookmarkData [description]
+     */
+    saveBookmark(bookmarkData) {
+        // the python controller takes care of replacing existing ones by deleting them
+        const controller = new BookmarkController(this.view);
+        return controller.save(bookmarkData);
+    }
+
+    /**
+     * Deletes the bookmark with the given id
+     * @param  {object} bookmarkId
+     */
+    deleteBookmark(bookmarkId) {
+        return this._db.table('bookmark').delete(bookmarkId);
+    }
+
+    /**
+     * Deletes the bookmark with the given id
+     * @param  {object} bookmarkId
+     */
+    updateBookmark(bookmarkId, bookmarkData) {
+        const controller = new BookmarkController(this.view);
+        return controller.update(bookmarkId, bookmarkData);
+    }
+
+    /**
+     * Get the groups accessible to the current user
+     */
+    getGroupsIds(isManager) {
+        const controller = new GroupController(this.view);
+        return controller.getGroupsIds(isManager);
+    }
+
+    /**
+     * Get the group by id
+     */
+    getGroup(id) {
+        const controller = new GroupController(this.view);
+        return controller.getGroup(id);
+    }
+
+    /**
+     * Executes a search request on the server
+     * @param  {string}         dsName                  Datasource to search on
+     * @param  {string}         searchTerm              Text to search for
+     * @param  {string}         options.application     Name of application to use to filter results
+     * @param  {Array<string>}  options.featureTypes    Types of features to use to filter results
+     */
+    runSearch(dsName, searchTerm, options) {
+        const controller = new SearchController(this.view, dsName);
+        return controller.search(searchTerm, this.getCurrentUsername(), options);
+    }
+
+    /**
+     * Searches for features (with search rules) matching the provided search terms
+     * @param  {string}         dsName                  Datasource to search on
+     * @param  {string}   searchTerms    Text to search for
+     * @param  {Array<string>}  [options.featureTypes]    Types of features to use to filter results
+     * @return {Promise<geojson>}  Promise for a feature collection
+     */
+    async getFeaturesMatching(dsName, searchTerm, options) {
+        const searchController = new SearchController(this.view, dsName);
+        const urns = await searchController.features(
+            searchTerm,
+            this.getCurrentUsername(),
+            options
+        );
+        const features = await this.view.getRecs(urns, {
+            displayValues: true,
+            includeGeoGeometry: true
+        });
+        //return result sorted on title
+        const titleGetter = feature => feature.myw.title;
+        return {
+            features: searchController.alphabeticalSort(features, titleGetter)
+        };
+    }
+
+    /**
+     * @return {object} defaultOptions
+     */
+    getTileLayerOptions(layerDef, defaultOptions) {
+        const options = { ...defaultOptions };
+        if (layerDef.mode === 'local') {
+            const { tileType } = layerDef;
+            const isVectorTile = ['mvt', 'topojson'].includes(tileType);
+            const { worldName } = layerDef.options;
+            const layerPath = worldName || layerDef.layer;
+            options.classPrototype = isVectorTile ? LocalVectorTileLayer : LocalTileLayer;
+            options.layerPath = layerPath;
+            options.server = this;
+        } else {
+            //master mode - leave default
+        }
+
+        return options;
+    }
+
+    /**
+     * Returns the elements of 'delta'
+     * @param {string} delta
+     * @returns {promise<object>} Response with a list of features
+     */
+    getDeltaFeatures(delta) {
+        const deltaController = new DeltaController(this.view);
+        return deltaController.features(delta);
+    }
+
+    /**
+     * Conflict info for 'delta'
+     * @param {string} delta
+     * @returns {promise<object>} Response with list of conflict objects
+     */
+    getDeltaConflicts(delta) {
+        const deltaController = new DeltaController(this.view);
+        return deltaController.conflicts(delta);
+    }
+
+    /**
+     * Invokes a custom module controller
+     * @param  {...any} args Route components with optional parameters as the last argument
+     */
+    moduleRequest(...args) {
+        const last = args[args.length - 1];
+        let params;
+        if (typeof last == 'object') {
+            params = last;
+            args = args.slice(-1);
+        }
+        const { Controller, methodName, routeParams } = routing.routeFor(args);
+        const controller = new Controller(this.view);
+        return controller[methodName]({ ...params, ...routeParams });
+    }
+
+    /**
+     * Sends a GET request to custom module controller
+     * @param  {...any} args Route components with optional parameters as the last argument
+     */
+    moduleGet(url, params) {
+        const { Controller, methodName, routeParams } = routing.routeFor(url, 'GET');
+        const controller = new Controller(this.view);
+        return controller[methodName](routeParams, params);
+    }
+
+    /**
+     * Invokes a custom module controller
+     * @param  {...any} args Route components with optional parameters as the last argument
+     */
+    modulePut(url, data) {
+        const { Controller, methodName, routeParams } = routing.routeFor(url, 'PUT');
+        const controller = new Controller(this.view);
+        return controller[methodName](routeParams, data);
+    }
+
+    /**
+     * Invokes a custom module controller
+     * @param  {...any} args Route components with optional parameters as the last argument
+     */
+    modulePost(url, data) {
+        const { Controller, methodName, routeParams } = routing.routeFor(url, 'POST');
+        const controller = new Controller(this.view);
+        return controller[methodName](routeParams, data);
+    }
+
+    /**
+     * Obtain a url for a layer file
+     * @param  {layerDef} layerDef
+     * @return {Promise<string>} Promise for the url string
+     */
+    async getUrlForLayerDataFile(layerDef) {
+        const url = await this._db.getSettingNamed('replication.replica_sync_url');
+        return `${url}/system/layer_file/${encodeURIComponent(layerDef.name)}`;
+    }
+
+    /**
+     * Obtain a url for kmz
+     * @param  {layerDef} layerDef
+     * @param  {string} filename
+     * @return {Promise<string>} Promise for the url string
+     */
+    async getUrlForKmz(layerDef, filename = null) {
+        const url = await this._db.getSettingNamed('replication.replica_sync_url');
+        return `${url}/system/kmz/${layerDef.name}${filename ? '/' + btoa(filename) : ''}`;
+    }
+
+    /**
+     * Obtains the number of features of a given type (and given conditions)
+     * @param  {queryParams} params
+     * @return {Promise<number>}        [description]
+     */
+    countFeatures(featureType, params) {
+        const controller = new FeatureController(this.view);
+        return controller.count('myworld', featureType, params);
+    }
+
+    // in the native app the request is not tunnelled
+    buildTunnelDatasourceRequestUrl(dsName, requestParams, options) {
+        const specPromise = options.owner
+            ? this._db
+                  .table('private_layer')
+                  .get(dsName)
+                  .then(rec => rec.datasource_spec)
+            : this._db
+                  .table('datasource')
+                  .get(dsName)
+                  .then(rec => rec.spec);
+
+        return specPromise.then(spec => {
+            const url = spec[options.urlFieldName];
+            //encode all parameters into a string that will then be used when the external request is made by the server
+            const argsStr = Object.entries(requestParams).reduce((memo, [key, value]) => {
+                value = encodeURIComponent(value || '');
+                return `${memo + key}=${value}&`;
+            }, '');
+            const dataFormat = options.format || 'json';
+            const format = `&format=${encodeURIComponent(dataFormat)}`;
+
+            return `${url}?${argsStr}${format}`;
+        });
+    }
+
+    /**
+     * Start a download on the client
+     * @param {Blob} blob file object
+     * @param {string} filename to be used in the download
+     * @param {string} mimeType to encode the download with
+     */
+    executeBlobDownload(blob, filename, mimeType) {
+        /* globals LocalFileSystem */
+        // ENH: improve/simplify ?
+        if (this.isElectron()) {
+            saveAs(blob, filename);
+        } else {
+            window.requestFileSystem(
+                LocalFileSystem.PERSISTENT,
+                0,
+                fileSystem => {
+                    // Create the file.
+                    fileSystem.root.getFile(
+                        filename,
+                        { create: true, exclusive: false },
+                        entry => {
+                            const fileUrl = entry.toURL();
+                            entry.createWriter(
+                                writer => {
+                                    writer.onwriteend = evt => {
+                                        if (platform.isAndroid()) {
+                                            this._openFileWithDialog(fileUrl, mimeType);
+                                        } else {
+                                            this._openFile(fileUrl, mimeType);
+                                        }
+                                    };
+                                    // Write to the file
+                                    writer.write(blob);
+                                },
+                                error => {
+                                    trace(
+                                        'file_opener',
+                                        1,
+                                        'Error: Could not create file writer, ' + error.code
+                                    );
+                                }
+                            );
+                        },
+                        error => {
+                            trace('file_opener', 1, 'Error: Could not create file, ' + error.code);
+                        }
+                    );
+                },
+                evt => {
+                    trace(
+                        'file_opener',
+                        1,
+                        'Error: Could not access file system, ' + evt.target.error.code
+                    );
+                }
+            );
+        }
+    }
+
+    _openFile(fileUrl, mimeType) {
+        /* globals cordova */
+        cordova.plugins.fileOpener2.open(fileUrl, mimeType, {
+            error: e => {
+                trace(
+                    'file_opener',
+                    1,
+                    'Error status: ' + e.status + ' - Error message: ' + e.message
+                );
+            },
+            success: () => {}
+        });
+    }
+
+    _openFileWithDialog(fileUrl, mimeType) {
+        cordova.plugins.fileOpener2.showOpenWithDialog(fileUrl, mimeType, {
+            error: e => {
+                trace(
+                    'file_opener',
+                    1,
+                    'Error status: ' + e.status + ' - Error message: ' + e.message
+                );
+            },
+            success: () => {}
+        });
+    }
+
+    //************** internal methods - not part of API that is being implemented ****************
+
+    /**
+     * Delete a feature by its id
+     * @param  {string}   schema
+     * @param  {string}   tableName
+     * @param  {string}   recordId
+     */
+
+    _boundsToArray(bounds) {
+        if (bounds) {
+            return {
+                xmin: bounds._southWest.lng,
+                ymin: bounds._southWest.lat,
+                xmax: bounds._northEast.lng,
+                ymax: bounds._northEast.lat
+            };
+        }
+    }
+
+    _trackedFeatureChanged() {
+        this.fire('trackedFeatureChanged');
+    }
+}

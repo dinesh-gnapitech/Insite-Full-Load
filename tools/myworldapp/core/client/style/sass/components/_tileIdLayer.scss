@@ -1,0 +1,18 @@
+.tile-coords {
+    border: 1px dashed #868585;
+    background: rgba(204, 204, 204, 0.17);
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.tile-coords-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 36px;
+    text-align: center;
+}

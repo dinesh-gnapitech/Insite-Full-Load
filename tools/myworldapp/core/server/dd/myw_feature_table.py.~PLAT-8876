@@ -1,0 +1,527 @@
+################################################################################
+# Engine for accessing a feature table
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+from sqlalchemy import inspect
+
+from myworldapp.core.server.base.core.myw_error import MywError
+from myworldapp.core.server.base.db.myw_db_predicate import MywDbPredicate
+from myworldapp.core.server.base.geom.myw_coord_system import MywCoordSystem
+
+
+class MywFeatureTable:
+    """
+    Engine for accessing a records from a feature table
+
+    Behaviour is modelled on SQLAlchemy query.
+    """
+
+    # Provided to permit sub-classing for versioned data
+
+    # Coordinate system is which self's geometries are stored
+    # Note: Internals geoms really in their own CS ... but coords are related to WGS84
+    # ENH: Move this to field descriptor or similar
+    coord_sys = MywCoordSystem(4326)
+
+    def __init__(self, view, feature_type, model):
+        """
+        Initialize self
+
+        View is a MywFeatureView"""
+
+        self.view = view
+        self.feature_type = feature_type
+        self.model = model
+        self.session = view.session
+        self.progress = view.progress
+
+        self._filter_preds = []
+        self._filter_builders = []
+        self._filter_offset = None
+        self._filter_limit = None
+        self._order_by_info = []  # A list of (field_name,ascending) tuples
+
+    def __repr__(self):
+        """
+        String identifying self in tracebacks etc
+        """
+
+        return self.__ident__()
+
+    def __ident__(self):
+        """
+        String identifying self in progress messages etc
+        """
+
+        return "{}({})".format(self.__class__.__name__, self.feature_type)
+
+    def clone(self):
+        """
+        Returns a shallow-ish copy of self
+        """
+
+        from copy import copy
+
+        clone = copy(self)
+        clone._filter_preds = copy(clone._filter_preds)
+        clone._filter_builders = copy(clone._filter_builders)
+        clone._order_by_info = copy(clone._order_by_info)
+
+        return clone
+
+    # ==============================================================================
+    #                                  PROPERTIES
+    # ==============================================================================
+
+    @property
+    def descriptor(self):
+        """
+        Object defining self's structure (a MywFeatureDescriptor)
+        """
+
+        return self.model._descriptor
+
+    @property
+    def versioned(self):
+        """
+        True is self is a versioned view
+        """
+
+        return False
+
+    # ==============================================================================
+    #                               QUERY BUILDING
+    # ==============================================================================
+
+    def field(self, name):
+        """
+        Predicate node for field NAME (a MywDbPredicate)
+        """
+
+        from myworldapp.core.server.base.db.myw_db_predicate import MywDbPredicate
+
+        # Check field exists and is stored
+        field_desc = self.descriptor.fields.get(name)
+        if not field_desc:
+            raise MywError(self.feature_type, ": No such field:", name)
+
+        if not field_desc.isStored:
+            raise MywError(self.feature_type, ": Not a stored field:", name)
+
+        # Build node
+        return MywDbPredicate.fieldItem(name)
+
+    def filterOn(self, field_name, value):
+        """
+        Restrict self to records where FIELD_NAME = VALUE
+        """
+
+        pred = self.field(field_name) == value
+
+        return self.filter(pred)
+
+    def filterWith(self, filter_builder):
+        """
+        Restrict self using function FILTER_BUILDER
+
+        The signature of FILTER_BUILDER must be:
+           FILTER_BUILDER(model)  ->  SQLAlchemy predicate
+
+        Permits use of SQLAlchemy/GEoAlchemy functionality not
+        supported by MywDbPredicate"""
+
+        clone = self.clone()
+        clone._filter_builders.append(filter_builder)
+
+        return clone
+
+    def filter(self, pred, svars={}):
+        """
+        Filter self using PRED (a MywDbPredicate)
+
+        SVARS provides values for session variables"""
+
+        clone = self.clone()
+        clone._filter_preds.append([pred, svars])
+
+        return clone
+
+    def limit(self, limit):
+        """
+        Set (or clear) the maximum number of records to return
+        """
+
+        clone = self.clone()
+        clone._filter_limit = limit
+
+        return clone
+
+    def offset(self, offset):
+        """
+        Set (or clear) the index of the first record to return
+        """
+
+        clone = self.clone()
+        clone._filter_offset = offset
+
+        return clone
+
+    def orderBy(self, *field_names, **opts):
+        """
+        Set the sort order of results
+
+        Supported OPTS are:
+          ascending=<bool>"""
+
+        # ENH: Check for unknown opts
+        ascending = opts.pop("ascending", True)
+
+        clone = self.clone()
+
+        for field_name in field_names:
+            clone._order_by_info.append((field_name, ascending))
+
+        return clone
+
+    def geomFilter(self, geom, default=False):
+        """
+        Build spatial predicate selecting on all geometry fields of self
+
+        GEOM is a MywGeometry. Optional DEFAULT defines behaviour for feature types with no geometry fields
+
+        Returns filter selecting records that intersect GEOM on any geom field (a MywDbPredicate)"""
+
+        # ENH: Duplicates code with MywRenderController ... add world arg here?
+
+        geom_filter = MywDbPredicate.false
+        have_geoms = False
+
+        # For each geometry field ... add a spatial test
+        for geom_field in self.model._geom_field_info:
+            geom_filter |= self.field(geom_field).geomIntersects(geom)
+            have_geoms = True
+
+        # If no geom fields, set requested behaviour
+        if (not have_geoms) and default:
+            geom_filter = MywDbPredicate.true
+
+        return geom_filter
+
+    # ==============================================================================
+    #                               QUERY EVALUATION
+    # ==============================================================================
+
+    def getRecs(self, ids):
+        """
+        Returns records matched by self with keys IDS (where they exist)
+        """
+        # Note: Overwritten in MywVersionedFeatureTable
+
+        recs = []
+
+        for rec in self._filtered_recs().filter(self.model._key_column().in_(ids)):
+            recs.append(self._detach(rec))
+
+        return recs
+
+    def get(self, id):
+        """
+        Returns record matched by self with key ID (if there is one)
+        """
+        # Note: Overwritten in MywVersionedFeatureTable
+
+        rec = self._filtered_recs(batched=False).filter(self.model._key_column() == id).first()
+
+        if not rec:
+            return None
+
+        return self._detach(rec)
+
+    def first(self):
+        """
+        Returns first record of self (if there is one)
+        """
+
+        for rec in self.recs(limit=1):
+            return rec
+
+    def all(self):
+        """
+        Get records matched by self
+        """
+
+        recs = []
+
+        for rec in self.recs():
+            recs.append(rec)
+
+        return recs
+
+    def __iter__(self):
+        """
+        Yields records matched by self
+        """
+
+        for rec in self.recs():
+            yield rec
+
+    def recs(self, offset=None, limit=None):
+        """
+        Yields records matched by self
+        """
+        # Note: overwritten in MywVersionedFeatureTable
+
+        self.progress(8, self, "EVALUATE", self._filter_preds, self._filter_builders, offset, limit)
+
+        # Deal with defaults (preserving zero values)
+        if offset == None:
+            offset = self._filter_offset
+        if limit == None:
+            limit = self._filter_limit
+
+        # Build query
+        query = self._filtered_recs(offset=offset, limit=limit, order_by_info=self._order_by_info)
+
+        # Yield results
+        for rec in query:
+            yield self._detach(rec)
+
+    def count(self, limit=None):
+        """
+        Returns number of records matched by self
+        """
+
+        limit = limit or self._filter_limit
+
+        return self._filtered_recs(limit=limit).count()
+
+    # ==============================================================================
+    #                               TABLE BEHAVIOUR
+    # ==============================================================================
+
+    def newWith(self, **props):
+        """
+        Build detached record from PROPS (a dict of database values)
+        """
+        return self.model(**props)
+
+    def insertWith(self, **props):
+        """
+        Create record from PROPS (a dict of database values)
+        """
+
+        det_rec = self.model(**props)
+
+        return self.insert(det_rec)
+
+    def insert(self, feature, **opts):
+        """
+        Create record from FEATURE (a geojson.Feature, record or dict)
+
+        OPTS define data format etc of FEATURE (see .updateFromDict())"""
+
+        # Make detached record
+        rec = self._new_detached()
+
+        # Set its attributes
+        rec.updateFrom(feature, **opts)
+
+        # Add to database (and allocate ID)
+        self.session.myw_db_driver.prepareForInsert(self.feature_type, rec)
+        self.session.add(rec)
+        self.session.flush()
+
+        rec._view = self.view
+        return rec  # can't return detached record here as it may need to be read/refreshed
+
+    def update(self, feature):
+        """
+        Update database with values from FEATURE
+
+        OPTS define data format etc of FEATURE (see .updateFromDict())
+
+        Returns updated record (None if not found)"""
+        # Note: Overwritten in MywVersionedFeatureTable
+
+        # Find record
+        rec = self._recs.get(feature._id)
+        if not rec:
+            return None
+
+        # Update it
+        rec.updateFromRec(feature)
+        self.session.flush()
+
+        rec._view = self.view
+        return rec  # can't return detached record here as it may need to be read/refreshed
+
+    def updateFrom(self, id, feature, **opts):
+        """
+        Update record ID with values from FEATURE (a geojson.Feature, record or dict)
+
+        OPTS define data format etc of FEATURE (see .updateFromDict())
+
+        Returns updated record (None if not found)"""
+        # Note: Overwritten in MywVersionedFeatureTable
+
+        # Find record
+        rec = self._recs.get(id)
+        if not rec:
+            return None
+
+        # Update it
+        rec.updateFrom(feature, **opts)
+        self.session.flush()
+
+        rec._view = self.view
+        return rec  # can't return detached record here as it may need to be read/refreshed
+
+    def updateManyFrom(self, ids, feature_properties):
+        """
+        Update records in IDS (a collection) with values from FEATURE_PROPERTIES (a dict)
+
+        Returns count of updated records"""
+
+        key_column = self.model._key_column()
+
+        update = (
+            self.model.__table__.update()
+            .returning(key_column)
+            .where(key_column.in_(ids))
+            .values(feature_properties)
+        )
+        result = self.session.execute(update).fetchall()
+        # results come back as a list of tuples, so we unpack those here.
+        return [r[0] for r in result]
+
+    def delete(self, feature):
+        """
+        Delete record FEATURE (or mark it as deleted)
+
+        Returns deleted record (None if not found)"""
+
+        return self.deleteById(feature._id)
+
+    def deleteById(self, id):
+        """
+        Delete record ID (or mark it as deleted)
+
+        Returns deleted record (None if not found)"""
+        # Note: Overwritten in MywVersionedFeatureTable
+
+        # Find record
+        rec = self._recs.get(id)
+
+        if not rec:
+            return None
+
+        # Delete it
+        self.session.delete(rec)
+        self.session.flush()
+
+        return self._detach(rec)
+
+    def deleteFiltered(self):
+        """
+        Delete all records matching the filter (if no filter is applied, this is equivalent to .truncate())
+
+        Returns the number of deleted records."""
+
+        return self._filtered_recs(batched=False).delete()
+
+    def truncate(self):
+        """
+        Remove all records from table
+        """
+        # Note: Subclassed in MywVersionedFeatureTable
+
+        self._recs.delete()
+        self.session.flush()
+
+    # ==============================================================================
+    #                                CHANGE DETECTION
+    # ==============================================================================
+
+    def featureChanges(self):
+        """
+        Yields changes if self's delta (as per myw_database.featureChanges()
+        """
+        # ENH: Get rid of this?
+
+        return {}
+
+    # ==============================================================================
+    #                                     HELPERS
+    # ==============================================================================
+
+    def _filtered_recs(self, offset=None, limit=None, order_by_info=[], batched=True):
+        """
+        Returns SQLAlchemy query yielding records of self
+        """
+
+        return self._buildQuery(self.model, self._recs, offset, limit, order_by_info, batched)
+
+    def _buildQuery(self, model, recs, offset, limit, order_by_info=[], batched=True):
+        """
+        Add self's filters to query RECS
+        """
+
+        # Add filters
+        for builder in self._filter_builders:
+            recs = recs.filter(builder(model))
+
+        for pred, svars in self._filter_preds:
+            sqa_pred = pred.sqaFilter(model.__table__, variables=svars)
+            recs = recs.filter(sqa_pred)
+
+        # Add ordering
+        for field_name, ascending in order_by_info:
+            field = model.__table__.c[field_name]
+            if ascending:
+                recs = recs.order_by(field)
+            else:
+                recs = recs.order_by(field.desc())
+
+        # Ensure sensible behaviour when using offset
+        # ENH: Find something better to order on (e.g. ROWID/CTID) .. or remove?
+        if (offset != None) and not order_by_info:
+            recs = recs.order_by(model._key_column())
+
+        # Add offset and limit (must be after ordering)
+        recs = recs.offset(offset).limit(limit)
+
+        # Prevent memory exhaustion on large queries
+        if batched:
+            recs = self.session.myw_db_driver.optimizeLargeQuery(recs)
+
+        return recs
+
+    @property
+    def _recs(self):
+        """
+        Query yielding raw records
+        """
+
+        return self.session.query(self.model)
+
+    def _new_detached(self):
+        """
+        Returns a detached record (a SQLAlchemy model instance)
+        """
+        # Note: Overwritten in MywVersionedFeatureTable
+
+        return self.model()
+
+    def _detach(self, rec):
+        """
+        Detaches REC from session and attaches it to self
+        """
+
+        # check if rec already detached, which can happen when going over tables with self referencing fields
+        if not inspect(rec).detached:
+            self.session.expunge(rec)
+
+        rec._view = self.view
+
+        return rec

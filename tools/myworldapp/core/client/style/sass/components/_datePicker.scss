@@ -1,0 +1,34 @@
+.ui-datepicker {
+    table {
+        border-collapse: inherit;
+        padding: $container-outer-padding-compact;
+        td {
+            a.ui-state-default {
+                border: 0px;
+                border-radius: 2px;
+                background: none;
+                text-align: center;
+                &:hover {
+                    text-decoration: none;
+                    background-color: $color-dark-background;
+                }
+            }
+            &.ui-datepicker-today > a.ui-state-default.ui-state-highlight {
+                border: 1px solid $color-toolbar-icons;
+                color: inherit;
+            }
+            &.ui-datepicker-current-day > a.ui-state-default.ui-state-active {
+                background-color: $color-toolbar-icons;
+                border-color: $color-toolbar-icons;
+            }
+        }
+    }
+    // Right align the action buttons
+    .ui-datepicker-buttonpane {
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+input.hasDatepicker {
+    padding-right: 30px;
+}

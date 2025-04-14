@@ -1,0 +1,21 @@
+.search-input {
+    position: relative;
+
+    .clear {
+        position: absolute;
+        right: 10px;
+        top: 9px;
+        cursor: pointer;
+    }
+
+    .prefix {
+        position: absolute;
+        left: 10px;
+        top: 9px;
+        z-index: 1;
+    }
+
+    input {
+        padding-left: 25px;
+    }
+}

@@ -1,0 +1,119 @@
+#results-features {
+    /* display: none; */
+    height: 100%;
+    position: relative;
+
+    div.right {
+        width: 20%;
+        float: right;
+        padding: 4px 0;
+    }
+}
+#results-content-table {
+    height: 92%;
+    width: 100%;
+    overflow: auto;
+}
+.tbl-results {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+
+    td {
+        padding: 2px;
+        border-bottom: $border-light;
+        border-top: none;
+        height: 27px;
+    }
+    .treven {
+        background-color: #f9f9f9;
+    }
+}
+.details-directions {
+    background: url('#{$path-to-img}glyph-directions.svg') no-repeat right;
+    background-size: 20px 20px;
+    width: 40px;
+}
+.result-zoom-col {
+    background: url('#{$path-to-img}zoom-grey.svg') no-repeat 12px center;
+    background-size: 20px 20px;
+    width: 40px;
+    cursor: pointer;
+    &.inactive {
+        background-image: url('#{$path-to-img}zoom-grey-inactive.svg');
+        cursor: auto;
+    }
+}
+.result-info-col {
+    padding-left: 13px !important;
+}
+.results-count {
+    font-size: 1.2em;
+    color: #666666;
+    text-align: center;
+    font-weight: bold;
+    padding-bottom: 7px;
+}
+#more-results {
+    background: none repeat scroll 0 0 $color-light-background;
+    border-top: $border-lighter;
+    height: 30px;
+    position: absolute;
+    width: 100%;
+    font-weight: 600;
+
+    > div {
+        display: inline-block;
+        vertical-align: -7px;
+    }
+}
+.no-more-results-present {
+    color: #cccccc;
+}
+.active {
+    color: $color-link-font-secondary;
+    cursor: pointer;
+}
+.results-links {
+    color: $color-main-font;
+    text-align: center;
+    margin-bottom: 10px;
+
+    span {
+        font-size: 0.8em;
+        color: #666666;
+    }
+}
+.results-200 {
+    color: $color-main-font;
+    text-align: center;
+    font-size: 0.9em;
+    margin: 0 10px 10px 10px;
+    font-weight: normal;
+}
+.result-title {
+    color: $color-link-font-secondary;
+    font-size: 1.1em;
+    line-height: 1.2em;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+.result-desc .result-delta {
+    font-size: 0.9em;
+}
+.result-zoom {
+    float: right;
+    padding-right: 10px;
+    cursor: pointer;
+}
+#results-limit-report {
+    border-bottom: $border-lighter;
+    padding-top: 10px;
+    font-weight: 600;
+    height: 25px;
+}

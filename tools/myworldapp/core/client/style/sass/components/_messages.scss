@@ -1,0 +1,73 @@
+#message,
+#layers_panel_message,
+#bookmark_dialog_message {
+    color: #ffffff;
+    background-color: #464646;
+    position: absolute;
+    z-index: 1000;
+    padding: 15px;
+    display: none;
+    opacity: 0.85;
+    border-radius: 10px;
+}
+#cancelAlert {
+    margin-top: 5px;
+}
+#details_panel_message {
+    max-width: 60%;
+
+    > ul {
+        margin-left: 15px;
+    }
+    li {
+        padding-bottom: 5px;
+    }
+}
+#message > img {
+    vertical-align: middle;
+}
+.alert-message {
+    padding: 9px;
+    border-radius: 5px;
+    border: 1px solid;
+    position: relative;
+
+    .alert-text {
+        padding-right: 20px;
+        display: inline-block;
+    }
+    .close {
+        padding: 4px;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        float: right;
+        font-size: 1.5em;
+        color: gray;
+        font-weight: bold;
+        vertical-align: sub;
+        position: absolute;
+        right: 7px;
+        top: 0;
+    }
+}
+.alert-success {
+    color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+.alert-warning {
+    color: #8a6d3b;
+    background-color: #fcf8e3;
+    border-color: #faebcc;
+}
+.alert-danger {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+.alert-info {
+    color: #4f4f4f;
+    background-color: #e7e7e7;
+    border-color: #c7c7c7;
+}

@@ -1,0 +1,180 @@
+.networkTraceModal {
+    .trace-out-pane,
+    .trace-find-route-pane {
+        .ui-form {
+            .ui-label {
+                width: 70px;
+            }
+
+            .ui-form-component-wrapper {
+                display: inline-flex;
+            }
+        }
+
+        .left-section {
+            width: 70% !important;
+        }
+
+        .right-section {
+            width: 30% !important;
+        }
+    }
+
+    .trace-history-pane {
+        height: 300px;
+        overflow-y: scroll;
+    }
+
+    .trace-form {
+        td {
+            padding: 5px 0;
+
+            label,
+            input {
+                margin-right: 10px;
+            }
+
+            select {
+                min-width: 100px;
+            }
+
+            .number {
+                width: 50px;
+            }
+        }
+    }
+
+    #clearResults {
+        margin-right: 10px;
+        box-shadow: none;
+        float: right;
+        background: url(#{$path-to-img}actions/clear.svg) no-repeat;
+        background-position: center center;
+        background-color: $color-action-icons;
+        height: 30px;
+        border: none;
+        &:disabled {
+            background-color: $color-action-icons-inactive;
+        }
+    }
+
+    #zoomTo {
+        box-shadow: none;
+        float: right;
+        background: url(#{$path-to-img}actions/zoom.svg) no-repeat;
+        background-position: center center;
+        background-color: $color-action-icons;
+        height: 30px;
+        border: none;
+        &:disabled {
+            background-color: $color-action-icons-inactive;
+        }
+    }
+}
+
+/*Trace Results */
+#results-trace {
+    padding: 0 5px;
+}
+
+ul.tree {
+    padding: 15px 10px;
+}
+ul.tree,
+ul.tree ul {
+    list-style: none;
+
+    input {
+        position: absolute;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    input ~ ul {
+        display: none;
+    }
+
+    input:checked ~ ul {
+        display: block;
+    }
+
+    ul {
+        margin-left: 10px;
+    }
+
+    li {
+        border-left: 1px solid rgb(100, 100, 100);
+        margin: 0;
+        padding: 3px 0px 3px 7px;
+        line-height: 23px;
+
+        .tree_label {
+            color: $color-link-font-secondary;
+            font-size: 1.1em;
+            padding-right: 15px;
+            cursor: pointer;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+
+        &:before {
+            position: relative;
+            top: -0.3em;
+            height: 1.3em;
+            width: 12px;
+            color: white;
+            border-bottom: 1px solid rgb(100, 100, 100);
+            content: '';
+            display: inline-block;
+            left: -7px;
+        }
+
+        &:last-child {
+            border-left: none;
+        }
+
+        &:last-child:before {
+            border-left: 1px solid rgb(100, 100, 100);
+        }
+    }
+
+    .leaf,
+    .node,
+    .branch {
+        position: relative;
+        .zoom {
+            cursor: pointer;
+            position: absolute;
+            right: 0px;
+            top: -3px;
+            @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+                /* IE10+ CSS styles go here */
+                top: 6px;
+            }
+        }
+    }
+
+    .branch > label.tree_label:before,
+    .node > label.tree_label:before {
+        background: #777;
+        color: #fff;
+        position: absolute;
+        z-index: 1;
+        width: 16px;
+        height: 16px;
+        border-radius: 1em;
+        content: '+';
+        text-align: center;
+        left: -7px;
+        line-height: 17px;
+        top: 6px;
+    }
+    .node > label.tree_label:before {
+        content: '';
+    }
+    .branch > :checked ~ label.tree_label:before {
+        content: '–';
+        line-height: 15px;
+    }
+}

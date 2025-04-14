@@ -1,0 +1,109 @@
+################################################################################
+# myWorld exceptions
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+
+class MywException(Exception):
+    """
+    Superclass for myWorld exceptions
+
+    Provides message formatting"""
+
+    def __init__(self, *msg_items, **kwargs):
+        """
+        Construct from a string
+
+        Optional MSG_ITEMS are substituted into MSG using .format()"""
+
+        self.msg = ""
+
+        for item in msg_items:
+
+            try:
+                item = item.__ident__()
+            except Exception:
+                pass
+
+            item_str = str(item)
+
+            if self.msg and not item_str.startswith(":"):
+                self.msg += " "
+            self.msg += item_str
+
+        self.kwargs = kwargs
+
+    def __str__(self):
+        """
+        Self as a string
+        """
+        return self.msg
+
+
+class MywError(MywException):
+    """
+    Raised by myWorld when it detects bad data (an 'expected' error)
+    """
+
+    pass
+
+
+class MywCoordSystemError(MywError):
+    """
+    Raised by myWorld when re-projecting geometry
+    """
+
+    pass
+
+
+class MywProjFileMissingError(MywError):
+    """
+    Raised by myWorld when Proj cannot find a requested data file.
+    """
+
+    def __init__(self, *msg_items, **kwargs):
+        super().__init__(*msg_items, **kwargs)
+        try:
+            self.path = kwargs["path"]
+        except KeyError:
+            self.path = ""
+
+
+class MywDataLoadError(MywError):
+    """
+    Raised by myWorld when an error occurs reading a file
+    """
+
+    pass
+
+
+class MywInvalidFileTypeError(MywError):
+    """
+    Raised by myWorld when an error occurs determining how to process a file
+    """
+
+    pass
+
+
+class MywUnknownFeatureTypeError(MywError):
+    """
+    Raised by mywWOrld when a FeatureType is missing
+    """
+
+    pass
+
+
+class MywDbQueryTimeOutError(MywError):
+    """
+    Raised by myWorld when a database query times out
+    """
+
+    pass
+
+
+class MywInternalError(MywException):
+    """
+    Raised by myWorld when a software issue is detected
+    """
+
+    pass

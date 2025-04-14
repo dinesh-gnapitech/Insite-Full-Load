@@ -1,0 +1,34 @@
+//To override orange colour enforced by antd by default
+.ant-checkbox .ant-checkbox-inner {
+    border-color: #aaa !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner,
+.ant-checkbox-indeterminate .ant-checkbox-inner::after {
+    background-color: #aaa !important;
+    border-color: #aaa !important;
+}
+
+.checkboxRow {
+    position: relative;
+}
+
+.read-only-checkbox {
+    float: right;
+    margin-right: 105px;
+}
+
+.snap-checkbox {
+    float: right;
+    margin-right: -106px;
+}
+
+.read-only-header {
+    position: absolute;
+    right: 86px;
+}
+
+.snap-header {
+    position: absolute;
+    right: 0;
+}

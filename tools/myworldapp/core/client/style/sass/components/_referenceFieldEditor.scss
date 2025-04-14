@@ -1,0 +1,49 @@
+#reference-field-clear {
+    position: absolute;
+    padding: 0 3px;
+    cursor: pointer;
+    left: 90%;
+    top: calc(50% - 3.5px);
+    margin: auto;
+}
+
+.ui-reference-feature {
+    width: calc(100% - 30px);
+    .read-only {
+        width: calc(100% - 14px);
+    }
+}
+
+.ui-button {
+    &.feature-edit-btn,
+    &.feature-edit-btn:hover {
+        background: url('#{$path-to-actions-img}edit-active.svg') no-repeat center transparent;
+        background-size: 20px 20px;
+        height: 32px;
+        width: 29px;
+        margin: 0 0 0 6px;
+    }
+
+    &.feature-edit-btn.read-only,
+    &.feature-edit-btn.read-only:hover {
+        background: url('#{$path-to-actions-img}more-active.svg') no-repeat center transparent;
+    }
+}
+#related-field-container {
+    position: relative;
+    width: 100%;
+    margin: auto;
+    display: flex;
+    align-items: center;
+}
+
+.result-remove-col {
+    background: url('#{$path-to-actions-img}clear-active.svg') no-repeat 12px center;
+    background-size: 20px 20px;
+    width: 40px;
+    cursor: pointer;
+    &.inactive {
+        background-image: url('#{$path-to-actions-img}clear-inactive.svg');
+        cursor: auto;
+    }
+}

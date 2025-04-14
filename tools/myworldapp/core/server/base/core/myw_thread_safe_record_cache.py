@@ -1,0 +1,78 @@
+################################################################################
+# Cache for SQL Alchemy records, to be used across threads.
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+from sqlalchemy.orm.exc import DetachedInstanceError
+
+from myworldapp.core.server.base.core.myw_thread_safe_cache import MywThreadSafeCache
+from myworldapp.core.server.base.core.myw_progress import MywSimpleProgressHandler
+
+
+class MywThreadSafeRecordCache(MywThreadSafeCache):
+    """
+    In-memory cache of SqlAlchemy records (which may expire.)
+
+    Stores the records, but checks their validity before returning and re-computes their value to
+    cache afresh.
+
+    Assumes that the value in the cache is a dictionary where the values() are records."""
+
+    def __init__(self):
+        super().__init__()
+        self.progress = MywSimpleProgressHandler(1, "RECORD CACHE:")
+
+    def get(self, key, proc, *args):
+        """
+        Obtains value for given KEY
+        If KEY hasn't been populated it runs PROC with ARGS and stores the result in the cache
+        If the value for KEY is already being calculated by another thread, this call will wait
+        for the result to be available before returning.
+
+        this override will check that the result is a dictionary with values that are records,
+        and if the records have detatched from the session, re-populate the cache with fresh
+        records.
+        """
+        result = super().get(key, proc, *args)
+
+        # Verify that the result has not expired / detatched:
+        try:
+
+            inner_result = list(result.values())[0]
+
+            # This value can be a record directly, or a collection of collections.
+            # ENH: An efficient way to traverse this data structure until we find at least one
+            # record, to avoid assumptions about the schema.
+            try:
+                # try to read the name of a column, will throw if detatched.
+                getattr(inner_result, list(inner_result.__table__.columns)[0].name)
+            except (TypeError, AttributeError):
+                # Assume a collection of collections (e.g. list of tuples), check _each_ item in
+                # the first and last tuple.
+                for should_be_record in inner_result[0]:
+                    getattr(
+                        should_be_record,
+                        list(should_be_record.__table__.columns)[0].name,
+                    )
+
+                for should_be_record in inner_result[-1]:
+                    getattr(
+                        should_be_record,
+                        list(should_be_record.__table__.columns)[0].name,
+                    )
+
+        except DetachedInstanceError:
+            # Invalidate whole cache here - if one record is stale, they likely all are.
+            self.cache = {}
+            result = super().get(key, proc, *args)
+        except Exception as e:
+            # If someone has cached non-records in here, don't crash the server.
+            # We do log, though, in case of bugs in this code.
+            import traceback
+
+            self.progress("error", "Unexpected error in MywThreadSafeRecordCache:", e)
+            self.progress("error", f"detail:{traceback.format_exc()}")
+            del self.cache[key]
+            result = super().get(key, proc, *args)
+
+        return result

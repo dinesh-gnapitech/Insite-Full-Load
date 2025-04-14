@@ -1,0 +1,311 @@
+################################################################################
+# Engine for performing a extract "snapshot" on a database
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+import os, tempfile, csv
+from datetime import datetime
+
+from myworldapp.core.server.base.core.myw_error import MywError
+from myworldapp.core.server.base.core.myw_progress import MywProgressHandler
+from myworldapp.core.server.base.core.myw_os_engine import MywOsEngine
+from myworldapp.core.server.base.tilestore.myw_tile_db import MywTileDB
+
+from .myw_extract_filter import MywExtractFilter
+
+
+class MywSnapshotEngine:
+    """
+    Engine to create an on-demand extract
+    """
+
+    def __init__(self, db, snapshots_dir, progress=MywProgressHandler()):
+        """
+        Init slots of self
+
+        DB is a MywDatabase. SNAPSHOTS_DIR is the root directory
+        under which snapshots will be created"""
+
+        self.db = db
+        self.snapshots_dir = snapshots_dir
+        self.progress = progress
+        self.os_eng = MywOsEngine(self.progress)
+
+    def snapshot(self, table_set_name, region_geom, user=None):
+        """
+        Create an on-demand extract
+
+        Builds a temporary zip file containing the features and
+        tiles indentified by TABLE_SET_NAME that interact with
+        REGION_GEOM.
+
+        Optional USER is a MywCurrentUser. If provided, snapshot is
+        restricted to objects that user is authorized to access.
+
+        Returns name of zip file created"""
+
+        # ENH: Add accessible tile files too
+
+        self.progress(1, "Extracting data for", table_set_name, "region=", region_geom.bounds)
+
+        # Find the tableset
+        table_set = self.tableSetFor(table_set_name)
+
+        # Build filter
+        extract_filter = MywExtractFilter(
+            "on_demand_extract", region=region_geom, table_set=table_set, progress=self.progress
+        )
+
+        # Set location for output
+        self.os_eng.ensure_exists(self.snapshots_dir)
+        root_dir = tempfile.mkdtemp(dir=self.snapshots_dir)
+        features_dir = self.os_eng.ensure_exists(root_dir, "features")
+        tiles_dir = self.os_eng.ensure_exists(root_dir, "tiles")
+
+        # Extract the data
+        feature_types = self.extractFeatureRecords(features_dir, extract_filter, user)
+        self.extractExternalFeatureRecords(features_dir, extract_filter)
+        self.extractFeatureTypes(features_dir, feature_types)
+        self.extractTileFiles(tiles_dir, extract_filter, user)
+        self.extractVersionStamps(root_dir)
+
+        # Build the ZIP file
+        return self.buildZip(root_dir)
+
+    def extractFeatureRecords(self, features_dir, extract_filter, user=None):
+        """
+        Export selected feature data to FEATURES_DIR (as CSV)
+
+        Returns names of feature types for which any data was output"""
+
+        with self.progress.operation("Extracting feature data ..."):
+
+            feature_types = []
+
+            # Export features
+            for feature_type in extract_filter.myworldFeatureTypes(self.db):
+
+                if user and not user.canAccessFeatureType("myworld", feature_type):
+                    self.progress(
+                        "warning",
+                        "User",
+                        user.name(),
+                        "not authorized to access feature type",
+                        feature_type,
+                    )
+                    continue
+
+                self.progress("starting", "Extracting feature type", feature_type)
+
+                pred = self.db.tables[feature_type].geomFilter(extract_filter.region_geom, True)
+
+                n_recs = self.db.data_loader.dumpFeatures(
+                    features_dir,
+                    feature_type,
+                    pred=pred,
+                    file_encoding="utf-8",
+                    file_format="csv",
+                    file_options={"geom_encoding": "wkb"},
+                    max_recs_per_file=2000,
+                )
+
+                if n_recs > 0:
+                    feature_types.append(feature_type)
+
+                self.progress("finished", "Records copied:", n_recs, records=n_recs)
+
+        return feature_types
+
+    def extractExternalFeatureRecords(self, features_dir, extract_filter):
+        """
+        Export selected external feature data to FEATURES_DIR (as CSV)
+        """
+        # ENH: Pass in user, check can access layer
+
+        with self.progress.operation("Extracting external feature data ..."):
+
+            bounds = extract_filter.regionBounds()
+
+            # For each on-demand external feature type (except rasters) ..
+            for (ds_rec, ds_engine, feature_rec) in extract_filter.externalFeatureTypes(self.db):
+                self.progress("starting", "Extracting external feature type", feature_rec)
+
+                feature_type = feature_rec.feature_name
+
+                # Extract and write data
+                file_base = feature_rec.local_table_name()
+                n_files = n_recs = 0
+                try:
+                    for recs in ds_engine.get_feature_data(feature_type, bounds):
+                        n_recs += len(recs)
+                        n_files += 1
+                        file_name = file_base + "." + str(n_files)
+                        self.db.data_loader._writeFeatures(
+                            features_dir, file_name, recs, "utf-8", "csv", {}
+                        )
+
+                except MywError as cond:
+                    self.progress(
+                        "warning", "Error accessig feature type:", feature_type, "error=", cond
+                    )
+
+                self.progress("finished", "Records copied:", n_recs, records=n_recs)
+
+    def extractFeatureTypes(self, features_dir, feature_types):
+        """
+        Export definitions of myworld feature types to FEATURES_DIR (as .def files)
+
+        These allow the caller to check for data model mis-match"""
+
+        with self.progress.operation("Extracting feature definitions ..."):
+
+            for feature_type in feature_types:
+                self.progress(1, "Extracting feature type definition", feature_type)
+                feature_rec = self.db.dd.featureTypeRec("myworld", feature_type)
+                self.db.data_loader.dumpFeatureType(features_dir, feature_rec)
+
+    def extractTileFiles(self, tiles_dir, extract_filter, user=None):
+        """
+        Extract selected tiles to TILES_DIR (as sqlite files)
+        """
+
+        # ENH: Only extract tile files are accessible to user
+
+        tile_file_mappings = extract_filter.tileFileMappings(self.db, tiles_dir)
+
+        # Copy tile files
+        with self.progress.operation("Extracting tile data ..."):
+
+            for master_file, extract_file in list(tile_file_mappings.items()):
+                self.extractTileFileTo(master_file, extract_file, extract_filter)
+
+    def extractTileFileTo(self, tile_file, out_file, extract_filter):
+        """
+        Copy selected tiles from TILE_FILE into a new sqlite file OUT_FILE
+        """
+
+        # ENH: Duplicated with MywExtractEngine
+
+        self.progress("starting", "Creating tilestore file", out_file, "...")
+
+        # Get extraction options
+        options = extract_filter.tileFileOptions(tile_file)
+        bounds = extract_filter.regionBounds()
+
+        # Say what we are about to do
+        for key, value in list(options.items()):
+            self.progress(2, "Options:", key, "=", value)
+
+        # Open files
+        tile_db = MywTileDB(tile_file, "r", progress=self.progress)
+        out_tile_db = MywTileDB(out_file, "w", progress=self.progress)
+
+        # Build optional args for loadFromDB()
+        args = {}
+        if options["by_layer"]:
+            args["use_index"] = True
+            args["layer"] = tile_db.layer()  # only used if tilstore version < 5
+
+        n_tiles = out_tile_db.loadFromDB(
+            tile_db,
+            bounds=bounds,
+            clip=False,  # On-demand tiles clipped at draw time
+            min_zoom=options["min_zoom"],
+            max_zoom=options["max_zoom"],
+            **args,
+        )
+
+        # Tidy up
+        out_tile_db.close()
+        self.progress("finished", tiles=n_tiles)
+
+        tile_db.close()
+
+    def extractVersionStamps(self, root_dir):
+        """
+        Extract master version stamp to version_stamps.csv
+
+        This info is not currently used by the Native App but is
+        provided to avoid creating empty zip files (see Fogbugz 7101)"""
+
+        self.progress("starting", "Exporting version stamps...")
+
+        # Get records to export
+        master_rec = {
+            "component": "master_data",
+            "version": self.db.versionStamp("data"),
+            "date": datetime.utcnow(),
+        }
+
+        version_stamps = [master_rec]
+
+        # Export them
+        file_name = os.path.join(root_dir, "version_stamps.csv")
+
+        self.writeCsvFile(file_name, ["component", "version", "date"], version_stamps)
+
+        self.progress("finished")
+
+    def writeCsvFile(self, file_name, field_names, rows):
+        """
+        Write ROWS as CSV, handling time formatting etc
+        """
+        # ENH: Duplicated with myw_replication_engine
+
+        # ENH: Duplicated with myw_record_mixin
+        timestamp_format = "%Y-%m-%dT%H:%M:%S.%f"
+
+        encoding = "utf-8"
+
+        with open(file_name, "w", encoding=encoding, newline="") as strm:
+            writer = csv.DictWriter(strm, fieldnames=field_names)
+            writer.writeheader()
+
+            for row in rows:
+
+                # Perform conversions
+                temp_row = {}
+                for field_name, value in list(row.items()):
+                    if isinstance(value, datetime):
+                        value = datetime.strftime(value, timestamp_format)
+                    temp_row[field_name] = value
+
+                writer.writerow(temp_row)
+
+    def buildZip(self, root_dir):
+        """
+        Build the snapshot ZIP from the data
+        """
+
+        # ENH: Avoid need to know sub-dir names etc
+
+        zip_file_name = "snapshot.zip"
+        zip_file = os.path.join(root_dir, zip_file_name)
+
+        self.os_eng.remove_if_exists(zip_file)  # ENH: Not required
+        self.os_eng.build_zip(zip_file, root_dir, ["tiles", "features"], ["version_stamps.csv"])
+
+        self.os_eng.remove_if_exists(os.path.join(root_dir, "tiles"))
+        self.os_eng.remove_if_exists(os.path.join(root_dir, "features"))
+        self.os_eng.remove_if_exists(os.path.join(root_dir, "version_stamps.csv"))
+
+        return zip_file
+
+    def tableSetFor(self, table_set_name):
+        """
+        Definition for TABLE_SET_NAME
+
+        Returns a table_set definition structure
+
+        Throws MywError if definition contains conflicting options"""
+
+        # ENH: Duplicated with MywMasterReplicationEngine
+
+        rec = self.db.config_manager.tableSetRec(table_set_name)
+
+        if rec is None:
+            raise MywError("No such table_set: " + table_set_name)
+
+        rec.assertValid()  # ENH: Pass record into extract filter and do this there
+
+        return rec.definition(expand_env_vars=True)

@@ -1,0 +1,25 @@
+{
+   "name": "Extracts", 
+   "category": "overlay", 
+   "code": "odex", 
+   "description": "Boundaries of your current on-demand extracts", 
+   "datasource": "myworld", 
+   "spec": {
+      "rendering": "vector", 
+      "isStatic": false, 
+      "jsClass": "", 
+      "nativeAppMode": "local"
+   }, 
+   "transparency": 50, 
+   "min_scale": 0, 
+   "max_scale": 20, 
+   "feature_types": [
+      {
+         "name": "myw_on_demand_extract", 
+         "field_name": "the_geom", 
+         "min_select": 5, 
+         "line_style": "#e34593:3:solid", 
+         "fill_style": "#e34593:28"
+      }
+   ]
+}

@@ -1,0 +1,33 @@
+<script type="text/template" id="add-layers-dialog-template">
+    <div class="add-layer-panel">
+        <input type="text" class="medium text-layer-search text"/>
+        <ul class="add-layer-list noStyleList">
+        </ul>
+        <div class="no-available-layer-rows hidden">{:no_layers}</div>
+    </div>
+</script>
+
+<script type="text/template" id="add-layers-row-template">
+    <li class="add-layer-row">
+        <span class="add-layer-button-cell <%if (!isAvailable) {%>inactive<%}%>" id="<%=name%>">
+            <div class="add-layer-button" title="{:add_to_list}"></div>
+        </span>
+           <span class="layer-icon"><% if (thumbnail) {%><img src=<%=thumbnail%>><%}%></span>
+           <span class="add-layer-cell">
+           	<div class="layer-name"><%-name || display_name || layer_name%></div>
+           	<div class="layer_description"><%=description%></div>
+           </span>
+
+           <%if (typeof subLayers !== 'undefined') {%>
+            <span class="expandLayerGroup"></span>
+            <ul class="sub-layer-list noStyleList hidden">
+            	<%subLayers.forEach(function(layer) {%>
+            		<li><%=layer.layerDef.display_name%></li>
+            	<%});%>
+            </ul>
+           <%}%>
+           <%if (isEditable) {%>
+               <span class="edit-btn"></span>
+           <%}%>
+       </li>
+</script>

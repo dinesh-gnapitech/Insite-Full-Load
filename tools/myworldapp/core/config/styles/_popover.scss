@@ -1,0 +1,18 @@
+.ant-popover {
+    &.myw-pop-color-and-transparency-picker {
+        // the component from ant design does not support override style of this layer
+        // using custom css class to override the style
+        .ant-popover-inner-content {
+            padding: 0;
+        }
+    }
+
+    &.myw-pop-confirm {
+        // prevent the message in pop confirm making the popup too wide
+        // and the yes / no buttons is too far to click
+        max-width: 400px;
+        button:first-of-type {
+            float: right; //Set cancel button to appear on the right
+        }
+    }
+}

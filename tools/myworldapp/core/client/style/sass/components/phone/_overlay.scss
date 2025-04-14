@@ -1,0 +1,47 @@
+.overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1001;
+    background-color: #000;
+    opacity: 0.5;
+    display: none;
+}
+.overlay-header {
+    @include flex-row-centered;
+    border-bottom: $border-dark;
+    font-size: 1.2em;
+    font-weight: 600;
+    padding: 0 12px;
+    color: #525252;
+    background-color: $color-light-background;
+    div {
+        flex: 1 auto;
+        &:first-child {
+            width: calc(100% - 40px);
+            padding: 12px 0;
+        }
+    }
+    .close-btn {
+        background: url('#{$path-to-img}x.svg') no-repeat center transparent;
+        background-size: 1em;
+        @include size(40px);
+        margin: 0;
+        padding: 0;
+    }
+}
+.overlay-body {
+    padding: 12px;
+    input.text {
+        height: 36px;
+        flex: 1 auto;
+    }
+}
+.overlay-buttons {
+    display: flex;
+    button {
+        flex: 1 auto;
+    }
+}

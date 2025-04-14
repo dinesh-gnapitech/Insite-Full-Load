@@ -1,0 +1,11 @@
+{
+   "name": "{:google_sat_layer_name}", 
+   "category": "basemap", 
+   "description": "{:google_sat_layer_desc}", 
+   "datasource": "google", 
+   "spec": {
+      "mapType": "SATELLITE"
+   }, 
+   "min_scale": 0, 
+   "max_scale": 20
+}

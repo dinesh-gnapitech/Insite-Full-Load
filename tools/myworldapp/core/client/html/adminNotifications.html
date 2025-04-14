@@ -1,0 +1,12 @@
+<script type="text/template" id="admin-notification-template">
+    <div class='admin-notification-icon <%=type%> <%if (!isUnread) {%> inactive <%}%>'></div>
+    <div class='admin-notification-body'>
+    	<div class='admin-notification-header'>
+    		<div class="admin-notification-title <%if (details && details.length > 0) {%>expanded<%}%>"><%=subject%></div>
+    		<div class='admin-notification-date'><%=date%></div>
+    	</div>
+    	<%if (details && details.length > 0) {%>
+    		<div class="admin-notification-details"><%=details%></div>
+    	<%}%>
+    </div>
+</script>

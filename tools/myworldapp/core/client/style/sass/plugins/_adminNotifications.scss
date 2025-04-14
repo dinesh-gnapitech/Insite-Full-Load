@@ -1,0 +1,78 @@
+.admin-notifications-launcher {
+    display: inline-block;
+    @include background-with-image(
+        '#{$path-to-img}notification.svg',
+        no-repeat,
+        center,
+        $color-toolbar-icons
+    );
+    background-size: 24px;
+    border-radius: $border-radius-circle;
+    @include size(100%);
+    &.no-notifications {
+        background-color: #bcbcbc;
+    }
+}
+.admin-notification-container {
+    margin: -0.5em -1em;
+}
+.admin-notification-row {
+    padding: 10px;
+    @include flex-row-centered;
+    align-items: initial;
+    background-color: $color-light-background;
+    margin: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 -1px 0 rgba(0, 0, 0, 0.02);
+}
+.admin-notification-row:not(:last-child) {
+    border-bottom: $border-lighter;
+}
+.admin-notification-title {
+    font-weight: 600;
+    padding-right: 20px;
+    &.expanded {
+        @include background-with-image('#{$path-to-img}expanded.svg', no-repeat, center right);
+        cursor: pointer;
+        &.collapsed {
+            @include background-with-image('#{$path-to-img}collapsed.svg', no-repeat, center right);
+        }
+    }
+}
+.admin-notification-date {
+    color: #7d7d7d;
+    padding-left: 12px;
+}
+.admin-notification-icon {
+    @include size(24px);
+    padding-right: 6px;
+    &.alert {
+        background: url('#{$path-to-img}notification_alert.svg') no-repeat center left transparent;
+        &.inactive {
+            background: url('#{$path-to-img}notification_alert_inactive.svg') no-repeat center left
+                transparent;
+        }
+    }
+    &.info {
+        background: url('#{$path-to-img}info.svg') no-repeat center left transparent;
+        &.inactive {
+            background: url('#{$path-to-img}info_inactive.svg') no-repeat center left transparent;
+        }
+    }
+    &.tip {
+        background: url('#{$path-to-img}tip.svg') no-repeat center left transparent;
+        &.inactive {
+            background: url('#{$path-to-img}tip_inactive.svg') no-repeat center left transparent;
+        }
+    }
+}
+.admin-notification-body {
+    width: calc(100% - 24px);
+}
+.admin-notification-header {
+    @include flex-row-centered;
+    justify-content: space-between;
+    height: 24px;
+}
+.admin-notification-details {
+    padding-top: 10px;
+}

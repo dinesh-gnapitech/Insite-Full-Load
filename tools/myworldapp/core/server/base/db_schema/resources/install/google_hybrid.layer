@@ -1,0 +1,11 @@
+{
+   "name": "{:google_hybrid_layer_name}", 
+   "category": "basemap", 
+   "description": "{:google_hybrid_layer_desc}", 
+   "datasource": "google", 
+   "spec": {
+      "mapType": "HYBRID"
+   }, 
+   "min_scale": 0, 
+   "max_scale": 20
+}

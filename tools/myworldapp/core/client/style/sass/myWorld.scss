@@ -1,0 +1,30 @@
+@import 'vendor/_index';
+@import 'base/_variables';
+@import 'modules/custom/public/style/_variables';
+@import 'base/_mixins';
+@import 'base/_fonts';
+
+* {
+    padding: 0;
+    margin: 0;
+}
+
+#myWorldApp {
+    @import 'base/_globals';
+
+    &[data-myw-layout='phone'] {
+        @import 'layouts/_phone';
+    }
+
+    &[data-myw-layout='desktop'] {
+        @import 'plugins/_index';
+        @import 'layouts/_desktop';
+        &.touch-enabled {
+            @import './vendor/_touchStyle';
+        }
+    }
+
+    &[data-myw-layout='print'] {
+        @import 'layouts/_print';
+    }
+}

@@ -1,0 +1,279 @@
+// Copyright: IQGeo Limited 2010-2023
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Button } from 'myWorld/uiComponents/react';
+import {
+    CameraOutlined,
+    EditOutlined,
+    PlusOutlined,
+    SyncOutlined,
+    UploadOutlined
+} from '@ant-design/icons';
+import { useLocale } from 'myWorld/hooks/useLocale';
+import { WebcamDialog } from 'myWorld/controls/webcamDialog';
+import { readImageFileData, resizeAndRotateImage } from '../imageUtils.js';
+import { mobile, apple, android } from 'myWorld/base/browser';
+
+/**
+ * Component displaying a set of attachment features
+ *
+ * Also optionally provides buttons to edit and delete the feature
+ *
+ * Option 'type' can be used to determine layout ('wall' or 'list')
+ */
+export const AttachmentsList = props => {
+    const imageFormats = ['image/jpeg', 'image/png', 'image/jpg', 'image/svg+xml'];
+    const { msg } = useLocale('AttachmentsList');
+
+    const [fileList, setFileList] = useState([]);
+    const [generating, setGenerating] = useState(true);
+
+    const {
+        owner,
+        attachments,
+        docFieldName,
+        imageFieldName,
+        filenameFieldName,
+        updatedAttachmentProps,
+        type,
+        isEditor = false
+    } = props;
+
+    //The file input is used for launching the camera app on android devices
+    const fileInputRef = useRef(null);
+
+    //----------------------------Side effects-----------------------------
+    useEffect(() => {
+        async function generateList() {
+            const list = attachments ? await generateFileList() : [];
+            setFileList(list);
+        }
+        generateList();
+    }, [updatedAttachmentProps]);
+
+    useEffect(() => {
+        setGenerating(false);
+    }, [fileList]);
+
+    //----------------------------Helper methods-----------------------------
+    /**
+     * Generates file list to be used in the antd upload component
+     */
+    const generateFileList = async () => {
+        setGenerating(true);
+        const list = [];
+
+        for (const attachment of attachments) {
+            const attProps = attachment.properties;
+            let item = {
+                uid: attProps.id ?? attachment.uid,
+                name: attProps[filenameFieldName] || attachment.getTitle(),
+                urn: attachment.getUrn(),
+                status: 'done',
+                feature: attachment
+            };
+
+            // Get features and extract photos and docs
+            if (attProps[imageFieldName]) {
+                item.thumbUrl = dataAsUrl(attProps[imageFieldName] || attProps[docFieldName]);
+                item.url = !isEditor
+                    ? dataAsUrl(attProps[imageFieldName] || attProps[docFieldName])
+                    : '';
+                item.type = 'image';
+            } else if (attProps[docFieldName]) {
+                item.url = '';
+                item.type =
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; //So an appropriate thumbnail is used
+            }
+            list.push(item);
+        }
+        return list;
+    };
+
+    /**
+     *
+     * @param {string} base64 string
+     * @returns {string} base64 string with content type
+     */
+    const dataAsUrl = image64 => {
+        const first4 = image64.substring(0, 4); //the first 4 characters in base64 correspond to the first 3 bytes in binary
+        let type;
+        if ('/9gA' <= first4 && first4 <= '/9j/') type = 'jpg';
+        else if (first4 == 'iVBO') type = 'png';
+        else if (first4 == 'data') return image64;
+        return `data:image/${type};base64,${image64}`;
+    };
+
+    const getFileObject = response => {
+        // Cordova returns a different format for the file property
+        if (response.file.type?.type) return response.file.name[0];
+        else return response.file;
+    };
+
+    const handleUpload = response => {
+        const file = getFileObject(response);
+        if (imageFormats.includes(file.type)) owner.addImageFile(file);
+        else owner.addDocument(file);
+    };
+
+    const handleRemove = file => {
+        owner.handleAttachmentDelete(file);
+    };
+
+    const handleChange = ({ file, fileList }) => {
+        fileList.map(file => {
+            file.status = 'done';
+        });
+        setFileList(fileList);
+    };
+
+    /**
+     * Edits file or photo
+     * @param {file} image file
+     */
+    const handleEdit = file => {
+        owner.editFileProps(file);
+        return false;
+    };
+
+    const handlePreview = file => {
+        if (isEditor) return;
+        if (file.type === 'image') owner.showImage(file);
+        else owner.beginDownload(file.feature);
+    };
+
+    //Launches the webcam dialog for connected and windows apps
+    //Launches the device's camera app for android devices
+    const handleTakePhoto = () => {
+        const isAndroidNative =
+            window.cordova?.platformId == 'android' || window.Capacitor?.platform == 'android';
+        // Trigger a click event on the file input element
+        if ((android || isAndroidNative) && fileInputRef.current) {
+            fileInputRef.current.click(); //This launches the device's camera app
+        } else {
+            const webcam = new WebcamDialog(this, {
+                callback: imageDataUrl => {
+                    // Convert the base64 image into an img and then process it
+                    const img = new Image();
+                    img.onload = () => {
+                        resizeAndRotateImage(img, img.width, img.height, null, owner.fieldDD).then(
+                            async imageData => {
+                                let insertedData = await owner.addImage(imageData);
+                                insertedData.uid = insertedData.id;
+                                insertedData.thumbUrl = imageDataUrl;
+                                insertedData.status = 'done';
+                                insertedData.type = 'image';
+                                setFileList(oldArray => [...oldArray, insertedData]);
+                            }
+                        );
+                    };
+                    img.src = imageDataUrl;
+                }
+            });
+            webcam.open();
+        }
+    };
+
+    const handleFileChange = e => {
+        // Access the selected file details
+        const selectedFile = e.target.files[0];
+
+        if (selectedFile) {
+            readImageFileData(selectedFile, owner.fieldDD)
+                .then(async imageData => {
+                    let insertedData = await owner.addImage(imageData);
+                    insertedData.uid = insertedData.id;
+                    insertedData.thumbUrl =
+                        'data:' + imageData.type + ';base64,' + imageData.base64;
+                    insertedData.status = 'done';
+                    insertedData.type = 'image';
+                    setFileList(oldArray => [...oldArray, insertedData]);
+                })
+                .catch(error => {
+                    console.error(error.message);
+                });
+        }
+    };
+
+    //----------------------------JSX-----------------------------
+    const isIOSNative = window.cordova?.platformId == 'ios' || window.Capacitor?.platform == 'ios';
+    const showPhotoBtn = !isIOSNative && !(mobile && apple) && imageFieldName;
+    const photoBtn = showPhotoBtn ? (
+        <>
+            <Button
+                style={{ marginRight: '10px' }}
+                icon={<CameraOutlined />}
+                onClick={handleTakePhoto}
+            >
+                {msg('take_photo')}
+            </Button>
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="camera"
+                id="cameraInput"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+            />
+        </>
+    ) : (
+        ''
+    );
+
+    let uploadButton,
+        photoBtnForList = '',
+        photoBtnForWall = '',
+        listType,
+        accept = '';
+
+    if (type === 'wall') {
+        listType = 'picture-card';
+        if (isEditor) {
+            uploadButton = (
+                <div>
+                    <PlusOutlined />
+                    <div style={{ marginTop: 8 }}>{msg(showPhotoBtn ? 'upload' : 'add')}</div>
+                </div>
+            );
+            photoBtnForWall = photoBtn;
+            accept = 'image/jpeg,image/png,image/jpg';
+        }
+    } else {
+        listType = 'picture';
+        if (isEditor) {
+            uploadButton = (
+                <Button icon={<UploadOutlined />}>{msg(showPhotoBtn ? 'upload' : 'add')}</Button>
+            );
+            photoBtnForList = photoBtn;
+        }
+    }
+
+    const uploadProps = {
+        accept: accept,
+        customRequest: handleUpload,
+        listType: listType,
+        multiple: true,
+        fileList: fileList,
+        showUploadList: {
+            showPreviewIcon: !isEditor,
+            showRemoveIcon: isEditor,
+            showDownloadIcon: isEditor,
+            downloadIcon: <EditOutlined title={'Edit'} /> //use download action as an edit action
+        },
+        onRemove: handleRemove,
+        onPreview: handlePreview,
+        onDownload: handleEdit,
+        onChange: handleChange
+    };
+
+    return generating ? (
+        <SyncOutlined spin />
+    ) : (
+        <>
+            {photoBtnForList}
+            <Upload {...uploadProps}>{uploadButton}</Upload>
+            {photoBtnForWall}
+        </>
+    );
+};
+export default AttachmentsList;

@@ -1,0 +1,39 @@
+@mixin background-with-image(
+    $imgpath,
+    $repeat: no-repeat,
+    $position: center center,
+    $color: transparent
+) {
+    background: url($imgpath) $repeat $position $color;
+}
+
+@mixin background-norepeat-center {
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+@mixin no-user-select {
+    user-select: none;
+    -webkit-touch-callout: none; //webkit (safari, chrome) browsers on touch devices
+    -webkit-user-select: none; //webkit (safari, chrome) browsers
+    -khtml-user-select: none; //webkit (konqueror) browsers
+    -moz-user-select: none; //mozilla browsers
+    -ms-user-select: none; //IE10+
+}
+
+@mixin size($width, $height: $width) {
+    width: $width;
+    height: $height;
+}
+
+@mixin text-overflow-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@mixin flex-row-centered {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}

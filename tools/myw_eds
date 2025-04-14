@@ -1,0 +1,10 @@
+#!/bin/bash
+# Bash wrapper to myWorld myWorld external datasource command 
+
+HERE=$(dirname $0)
+
+# Init environment
+source $HERE/myw_env
+
+# Run command
+python $0.py "$@"

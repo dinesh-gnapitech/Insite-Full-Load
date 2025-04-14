@@ -1,0 +1,367 @@
+################################################################################
+# MywExtractFilter
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+import os
+from collections import OrderedDict
+from myworldapp.core.server.base.core.myw_error import MywError, MywInternalError
+from myworldapp.core.server.base.core.myw_progress import MywProgressHandler
+
+
+class MywExtractFilter:
+    """
+    Helper class for database extraction operations
+
+    Builds feature type lists, tilestore mappings, select
+    queries etc based on selected extract region and
+    table_set. Also defines backstop behaviour when those are
+    not specified.
+    """
+
+    def __init__(
+        self,
+        operation,
+        region=None,
+        table_set=None,
+        on_demand=False,
+        progress=MywProgressHandler(),
+        include_deltas=False,
+    ):
+        """
+        Create filter for extracting from master database DB
+
+        OPERATION defines the extraction operation to perform, one of:
+          'extract'
+          'export'
+          'on_demand_extract'
+
+        Optional REGION is a shapely geometry controlling the area
+        extracted. For convenience, also accepts a feature record
+        (in which case region.the_goem is used).
+
+        Optional TABLE_SET is a table_set definition defining which
+        feature types and tile layers are extracted (are returned by
+        MywTableSet.definition())"""
+
+        # Handle region is feature record
+        if hasattr(region, "_field"):
+            region = region._field("the_geom").geom()
+
+        # Init slots
+        self.table_set = table_set
+        self.region_geom = region
+        self.operation = operation
+        self.on_demand = operation == "on_demand_extract"
+        self.progress = progress
+        self.include_deltas = include_deltas
+
+        # Check args make sense
+        if not operation in ["extract", "export", "on_demand_extract"]:
+            raise MywInternalError("Bad extraction operation: " + operation)
+
+        if self.on_demand and not table_set:
+            raise MywInternalError(
+                "On demand extraction requires table set"
+            )  # TODO: Or define default behaviour
+
+    # ==============================================================================
+    #                             FEATURE TYPE OPERATIONS
+    # ==============================================================================
+
+    def myworldFeatureTypes(self, db, versioned_only=False):
+        """
+        The myWorld feature types to extract data for
+
+        Note: Assumes table set is valid (that is, does not contain conflicting options)"""
+
+        system_feature_types = ["myw_on_demand_extract"]
+        excluded_feature_types = db.setting("replication.excluded_feature_types") or []
+        excluded_feature_types = excluded_feature_types + system_feature_types
+
+        # Get selected feature types (or default)
+        if self.table_set:
+            feature_types = []
+
+            for (layer_name, options) in list(self.table_set["layers"].items()):
+
+                # Check we want this layer
+                if options["on_demand"] != self.on_demand:
+                    continue  # Case: Not for this mode
+                if self.operation == "export" and not options["updates"]:
+                    continue  # Case: Don't want to send updates
+
+                # Get layer definition
+                # ENH: Use the layer record directly
+                layer_def = db.config_manager.layerDef(layer_name)
+
+                # Check for does not exist
+                # ENH: Warn about this
+                if not layer_def:
+                    continue
+
+                # Check for wrong datasource
+                if layer_def["datasource"] != "myworld":
+                    continue
+
+                # Get feature types in layer
+                feature_item_defs = layer_def.get("feature_types", [])
+
+                # Add them to the list
+                for feature_item_def in feature_item_defs:
+                    feature_type = feature_item_def["name"]
+
+                    if not feature_type in feature_types:
+                        feature_types.append(feature_type)
+
+        else:
+            feature_types = db.dd.featureTypes("myworld", change_tracked_only=True, sort=True)
+
+        # Exclude non-versioned feature types (if necessary)
+        if versioned_only:
+            filter_proc = lambda ft: db.dd.featureTypeRec("myworld", ft).versioned
+            feature_types = list(filter(filter_proc, feature_types))
+
+        # Exclude feature types whose data should never be extracted
+        filter_proc = lambda ft: not (ft in excluded_feature_types)
+        feature_types = list(filter(filter_proc, feature_types))
+
+        return feature_types
+
+    def regionPredicateFor(self, db, feature_type):
+        """
+        MywDbPredicate to restrict record exports for FEATURE_TYPE (if there is one)
+        """
+
+        if not self.region_geom:
+            return None
+
+        table = db.tables[feature_type]
+        return table.geomFilter(self.region_geom, True)
+
+    def regionBounds(self):
+        """
+        Bounds for region to extract (if there is one)
+
+        Returns a tuple of the form:
+          (mix_x,min_y),(max_x,max_y)"""
+
+        if not self.region_geom:
+            return None
+
+        bounds = self.region_geom.bounds
+
+        return (bounds[0], bounds[1]), (bounds[2], bounds[3])
+
+    def regionGeom(self):
+        """
+        Shapely geometry defining region to extract (if there is one)
+        """
+
+        if not self.region_geom:
+            return None
+
+        # ENH: Could assert that geom is a polyogn here
+
+        return self.region_geom
+
+    # ==============================================================================
+    #                         EXTERNAL FEATURE TYPE OPERATIONS
+    # ==============================================================================
+
+    def externalFeatureTypeChanges(
+        self, db, feature_type_changes, layer_changes, table_set_changes
+    ):
+        """
+        The external feature types for which a local def should be exported
+
+        FEATURE_TYPE_CHANGES, LAYER_CHANGES and TABLE_SET_CHANGES
+        are change set dicts, as returned by db.configChanges().
+
+        Yields:
+         DS_REC
+         FEATURE_REC"""
+
+        # Note: We know only what has changed, not what it was like
+        # before. Thus table_set and layer changes can provoke export
+        # of feature defs that have not actually changed
+
+        all_modes = True
+
+        # Build list of extracted external feature types
+        extracted_feature_types = {}
+        for ds_rec, ds_engine, feature_rec in self.externalFeatureTypes(db, all_modes):
+            name = feature_rec.ident()
+            extracted_feature_types[name] = (ds_rec, feature_rec)
+
+        # Build list of extracted layers
+        extracted_layers = {}
+        for layer_rec in self.externalLayers(db, all_modes):
+            extracted_layers[layer_rec.name] = layer_rec
+
+        # Init list of feature type idents
+        feature_types = set()
+
+        # If self's table_set has changed, user might have added a new layer .. so export all defs
+        if self.table_set and (self.table_set["name"] in table_set_changes):
+            feature_types.update(list(extracted_feature_types.keys()))
+
+        else:
+            # Add features from external layers that have been updated (in case user has added a feature type)
+            for layer_name, change_type in list(layer_changes.items()):
+                layer_rec = extracted_layers.get(layer_name)
+
+                if layer_rec and change_type == "update":
+                    for feature_rec in list(layer_rec.feature_recs().values()):
+                        feature_types.add(feature_rec.ident())
+
+            # Add extracted external feature types that have changed
+            for feature_type, change_type in list(feature_type_changes.items()):
+                if feature_type in extracted_feature_types and change_type in ["insert", "update"]:
+                    feature_types.add(feature_type)
+
+        # Yield the records (excluding raster features types etc)
+        for feature_type in sorted(feature_types):
+            if feature_type in extracted_feature_types:
+                yield extracted_feature_types[feature_type]
+
+    def externalFeatureTypes(self, db, all_modes=False):
+        """
+        The external feature types to extract data for
+
+        Yields:
+         DATASOURCE_REC
+         DATSOURCE_ENGINE
+         FEATURE_REC
+
+        Note: Assumes table set is valid (that is, does not contain conflicting options)"""
+
+        if self.table_set:
+            feature_types = {}
+            ds_engines = {}
+
+            # For each external layer ..
+            for layer_rec in self.externalLayers(db, all_modes):
+
+                # Get datasource record
+                ds_rec = layer_rec.datasource_rec
+
+                # Get datasource engine (reusing, to avoid reconnection costs)
+                ds_engine = ds_engines.get(ds_rec.name)
+                if not ds_engine:
+                    ds_engine = ds_engines[ds_rec.name] = ds_rec.engine(progress=self.progress)
+
+                # Update list of feature types
+                for feature_type, feature_rec in list(layer_rec.feature_recs().items()):
+                    feature_types[feature_type] = (ds_rec, ds_engine, feature_rec)
+
+            # Yield results
+            for feature_type in sorted(feature_types.keys()):
+
+                ds_rec, ds_engine, feature_rec = feature_types[feature_type]
+
+                # Rasters not extractable (handled by Native aApp)
+                if feature_rec.geometry_type == "raster":
+                    self.progress(
+                        3, "Features of type raster are not extractable (skipped):", feature_rec
+                    )
+                    continue
+
+                # Non-ascii field names break SQLAlchemy model building
+                # ENH: Support as per http://stackoverflow.com/questions/5829077/sqlalchemy-mapping-table-with-non-ascii-columns-to-class
+                for field_name in feature_rec.nonAsciiFieldNames():
+                    raise MywError(
+                        "Features with non-ascii field names are not extractable:",
+                        str(feature_rec),
+                        field_name,
+                    )
+
+                yield feature_types[feature_type]
+
+    def externalLayers(self, db, all_modes=False):
+        """
+        The external layers which are extracted
+
+        Yields layer records"""
+
+        if not self.table_set:
+            return
+
+        for (layer_name, options) in list(self.table_set["layers"].items()):
+
+            # Check we want this layer
+            # ENH: EXTDD: Share with myworldFeatureTypes()
+            if not all_modes:
+                if options["on_demand"] != self.on_demand:
+                    continue  # Case: Not for this mode
+                if self.operation == "export" and not options["updates"]:
+                    continue  # Case: Don't want to send updates
+
+            layer_rec = db.config_manager.layerRec(layer_name)
+            if not layer_rec:
+                self.progress("warning", "No such layer:", layer_name)
+                continue
+
+            if layer_rec.datasource_name == "myworld":
+                continue
+
+            yield layer_rec
+
+    # ==============================================================================
+    #                             TILE FILE OPERATIONS
+    # ==============================================================================
+
+    def tileFiles(self, db):
+        """
+        Names of selected master tile files
+        """
+        # ENH: Warn about tile files in table_set but not in DB
+
+        master_ts = db.tilestore()
+
+        # Get files to extract from
+        if self.table_set:
+            master_files = []
+
+            for tile_file in master_ts.tileFiles():
+                options = self.table_set["tile_files"].get(tile_file)
+
+                if not options:
+                    continue  # Case: Not in table_set
+                if options["on_demand"] != self.on_demand:
+                    continue  # Case: Not for this mode
+                if self.operation == "export" and not options["updates"]:
+                    continue  # Case: Don't want to send updates
+
+                master_files.append(tile_file)
+        else:
+            master_files = master_ts.tileFiles()
+
+        return master_files
+
+    def tileFileMappings(self, master_db, out_dir):
+        """
+        Returns locations for extract tile files (keyed by master tile file name)
+
+        MASTER_TS is a MywTilestore. Optional TABLE_SET is a dict"""
+
+        # ENH: Warn about tile files in table_set but not in DB
+
+        # Build mappings
+        # ENH: In sorted order
+        mappings = OrderedDict()
+        for file in self.tileFiles(master_db):
+            base_name = os.path.basename(file)
+            mappings[file] = os.path.join(out_dir, base_name)
+
+        return mappings
+
+    def tileFileOptions(self, tile_file):
+        """
+        Extraction options for TILE_FILE (which must be a valid master file)
+        """
+
+        if self.table_set:
+            return self.table_set["tile_files"][tile_file]
+        else:
+            return {"clip": True, "by_layer": False, "min_zoom": None, "max_zoom": None}

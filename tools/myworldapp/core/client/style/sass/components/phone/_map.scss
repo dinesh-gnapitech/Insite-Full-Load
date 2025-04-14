@@ -1,0 +1,6 @@
+.gm-style > div,
+.gm-style > iframe,
+.gm-style > iframe > * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+}

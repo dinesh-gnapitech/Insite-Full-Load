@@ -1,0 +1,464 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import { result } from 'underscore';
+import { Control } from 'myWorld/base/control';
+import { Util } from 'myWorld/base';
+import { Separator } from 'myWorld/uiComponents';
+import { StringFieldEditor } from './stringFieldEditor';
+import { EnumeratorFieldEditor } from './enumeratorFieldEditor';
+import { BooleanFieldEditor } from './booleanFieldEditor';
+import { DateFieldEditor } from './dateFieldEditor';
+import { ReferenceFieldEditor } from './referenceFieldEditor';
+import { ReferenceSetFieldEditor } from './referenceSetFieldEditor';
+import { TimeFieldEditor } from './timeFieldEditor';
+import { IntegerFieldEditor } from './integerFieldEditor';
+import { DoubleFieldEditor } from './doubleFieldEditor';
+import { NumericFieldEditor } from './numericFieldEditor';
+import { LinkFieldEditor } from './linkFieldEditor';
+import { ImageFieldEditor } from './imageFieldEditor';
+import { FileFieldEditor } from './fileFieldEditor';
+import ResizableGridMixin from './resizableGridMixin';
+
+/**
+ * Options for FieldEditorsPanel instances
+ * @typedef fieldEditorsPanelOptions
+ * @property {DDFeature}            feature                     The feature being edited
+ * @property {Array<string>}            fields                      Internal names of fields to include, in display order
+ * @property {HTMLElement}               el                          (from Backbone) Element where the editor should render the UI. If not provided, a popup editor will be used
+ * @property {boolean}          [useExpandedFieldEditors=false]     Whether the FieldEditor should use more space if useful (ex: button instead of dropdown) or if it should remain compact
+ * @property {Object<FieldEditor|function>}  [fieldEditorMapping]  Field type to FieldEditor mapping. Keyed on field type. <br/>
+ *                                                                   If the value is a function instead of a class, it gets fieldDD as argument and it should return the appropriate class.
+ */
+
+const enumOrType = baseType => fieldDD =>
+    Object.prototype.hasOwnProperty.call(fieldDD, 'enum') ? EnumeratorFieldEditor : baseType;
+
+export class FieldEditorsPanel extends Control {
+    static {
+        this.include(ResizableGridMixin);
+
+        this.mergeOptions({
+            useExpandedFieldEditors: false,
+            fieldEditorMapping: {}
+        });
+
+        this.prototype.defaultMapping = {
+            string: enumOrType(StringFieldEditor),
+            boolean: BooleanFieldEditor,
+            date: DateFieldEditor,
+            reference: ReferenceFieldEditor,
+            reference_set: ReferenceSetFieldEditor,
+            foreign_key: ReferenceFieldEditor,
+            timestamp: TimeFieldEditor,
+            integer: enumOrType(IntegerFieldEditor),
+            double: enumOrType(DoubleFieldEditor),
+            numeric: enumOrType(NumericFieldEditor),
+            link: LinkFieldEditor,
+            image: ImageFieldEditor,
+            file: FileFieldEditor
+        };
+    }
+
+    /**
+     * @class A UI Control to a hold a list of field editors. <br/>
+     *        Is responsible for the layout and label of each field editor. <br/>
+     *        The rendering of each field editor is delegated to an appropriate subclass of {@link FieldEditor} <br/>
+     *        The choice of which FieldEditor to use for a particular field is made based on the field's type. <br/>
+     *        This mapping can be overriden by providing a mapping in fieldEditorMapping option (in a subclass or passing to the constructor)
+     * @example new FieldEditorsPanel(owner, {feature: aFeature, fields: someFieldNames, el: aContainer}) <br/>
+     * @example var panel = new FieldEditorsPanel(owner);
+     * panel.buildForm(aFeature, someFieldNames, aContainer);
+     * @param  {Application|Control}    owner
+     * @param  {fieldEditorsPanelOptions}       [options]
+     * @constructs
+     * @extends {Control}
+     */
+    constructor(owner, options) {
+        super(owner, options);
+        ResizableGridMixin.initialize.call(this);
+
+        //merge fieldEditorMapping provided options with default mapping
+        this.options.fieldEditorMapping = {
+            ...this.defaultMapping,
+            ...this.options.fieldEditorMapping
+        };
+
+        if (this.options.feature) {
+            const editorOptions = options.feature.featureDD.editor_options;
+            this.usePopupEditor = this.isOwnerAPopup();
+            this.buildForm(options.feature, options.fields, this.$el);
+
+            const renderedEditorItems = options.fields
+                .map(fieldName => {
+                    if (this.usePopupEditor && Util.isJson(fieldName))
+                        //field is a separator, add it for popup editors
+                        return this.separators[options.feature.parseSeparator(fieldName).label];
+                    else return this.fieldEditors[fieldName];
+                })
+                .filter(entry => entry !== undefined);
+
+            const desiredWidth =
+                this.usePopupEditor && editorOptions?.popup_width
+                    ? parseInt(editorOptions.popup_width)
+                    : options.feature.popupEditorWidth ?? null;
+            this.registerResizeableGrid(
+                this.$el.find('.field-editor-table')[0],
+                renderedEditorItems,
+                desiredWidth
+            );
+        }
+    }
+
+    /**
+     * Whether this panel is part of a popup editor or not
+     * Checks the owner and the owner's owner for situations where the owner is an intermediate control like tabControl
+     * @returns {boolean}
+     */
+    isOwnerAPopup() {
+        return this.owner.popup ?? this.owner.owner?.popup ?? false;
+    }
+
+    remove() {
+        super.remove();
+        ResizableGridMixin.remove.call(this);
+    }
+
+    /**
+     * Creates a form for editing a feature's properties
+     * @param  {DDFeature}  feature     Feature to edit
+     * @param  {Array<string>}  fields      Internal names of fields to include, in display order
+     * @param  {jQueryElement}  container   jquery object for an element on which to build the form
+     */
+    buildForm(feature, fields, container) {
+        //get all fieldDDs and separators in display order
+        const fieldDDsAndSeparators = fields.map(fieldName => {
+            return Util.isJson(fieldName)
+                ? feature.parseSeparator(fieldName)
+                : feature.getFieldDD(fieldName);
+        });
+        const tableEl = $('<div>', { class: 'field-editor-table' });
+
+        this.fieldEditors = {};
+        this.separators = {};
+        this.fieldElements = {};
+
+        container.append(tableEl);
+
+        //  First, structure the table into rows to handle the new_row options
+        const rows = [];
+        const addedDDs = [];
+        let newRow = [];
+        fieldDDsAndSeparators.forEach(editorItem => {
+            if (editorItem.type === 'separator') {
+                newRow.push(editorItem);
+                return;
+            }
+            const fieldName = editorItem['internal_name'];
+            if (addedDDs.includes(fieldName)) return; //already in the panel
+            if (!this._isFieldEditable(editorItem, feature)) return; //calculated or read only field, do nothing
+
+            addedDDs.push(fieldName);
+
+            if (editorItem.new_row !== false && newRow.length) {
+                rows.push(newRow);
+                newRow = [];
+            }
+            newRow.push(editorItem);
+        });
+        if (newRow.length) rows.push(newRow);
+
+        //build the form for editing
+        rows.forEach((row, rowIndex) => {
+            const containerEl = $('<div>');
+            containerEl.css('display', 'contents');
+            row.forEach((editorItem, index) => {
+                const editorItemName = editorItem.internal_name || JSON.stringify(editorItem);
+                this.buildFormElements(feature, editorItemName, editorItem, containerEl);
+            });
+
+            //  Manually inject first and last row classes here
+            if (rowIndex == 0) {
+                containerEl.addClass('first-row');
+            }
+            if (rowIndex == rows.length - 1) {
+                containerEl.addClass('last-row');
+            }
+
+            tableEl.append(containerEl);
+        });
+        this.update(feature);
+
+        Object.values(this.fieldEditors).forEach(fieldEditor => {
+            this.listenTo(fieldEditor, 'change', this._propagateEvent);
+        });
+    }
+
+    /**
+     * Updates the editors and panel using the given feature data
+     * Evalutes predicates with the data to adjust visibility of elements
+     * @param {featureData} featureData
+     */
+    update(featureData) {
+        const sessionVars = this.app.database.getSessionVars();
+        Object.entries(this.fieldEditors).forEach(([fieldName, fieldEditor]) => {
+            if (!fieldEditor.fieldDD) return; //Don't do anything if it is a separator
+            const { fieldDD } = fieldEditor;
+            const { valueElement, fieldNameElement, mandatoryElement } =
+                this.fieldElements[fieldName];
+
+            const isVisible = fieldDD.visible.matches(featureData, sessionVars);
+            valueElement.toggle(isVisible);
+            fieldNameElement.toggle(isVisible);
+            const isReadonly = fieldDD.read_only.matches(featureData, sessionVars);
+            fieldEditor.setReadonly(isReadonly);
+            fieldEditor.updateFor(featureData, sessionVars);
+
+            mandatoryElement.toggle(
+                shouldShowAsterisk(
+                    featureData,
+                    fieldDD,
+                    sessionVars,
+                    this.options.feature.keyFieldName
+                )
+            );
+        });
+    }
+
+    _propagateEvent(ev) {
+        this.trigger('change', ev);
+    }
+
+    _isFieldEditable(fieldDD, feature) {
+        const readonlyFields = result(feature, 'readonlyFields') ?? [];
+        const isReadonly =
+            readonlyFields.includes(fieldDD.internal_name) || fieldDD.read_only == 'true'; // field's is configured as (never) editable
+        const isGeometry = ['point', 'polygon', 'linestring'].includes(fieldDD.type); // geometry or read only field
+        const hasGenerator = Object.prototype.hasOwnProperty.call(fieldDD, 'generator'); //generated field
+        const isCalculated = !!fieldDD.value && !fieldDD.editor_class; //if it has editor we don't consider it calculated for these purposes
+        return !isReadonly && !isGeometry && !hasGenerator && !isCalculated;
+    }
+
+    /**
+     * Builds the form elements for a given field
+     * @param  {Feature}            feature     Feature being edited
+     * @param  {string}             editorItemName  Internal name of the field or the stringifield separator JSON
+     * @param  {fieldDD|object}     editorItem  FieldDD or separator object
+     * @param  {jQueryElement}      container   jQuery object for an element on which to add the form elements for the specified field
+     */
+    buildFormElements(feature, editorItemName, editorItem, container) {
+        if (editorItem.type === 'separator') {
+            if (!this.usePopupEditor) return; //Only add a separator in pop up editors
+            const separator = new Separator({
+                label: editorItem.label
+            });
+            container.append(separator.$el);
+            this.separators[editorItem.label] = separator.$el;
+            return;
+        }
+        //a regular field
+        const fieldEditor = this.getFieldEditor(feature, editorItem);
+        this.fieldEditors[editorItemName] = fieldEditor;
+
+        // html <tr> element
+        const fieldNameElement = $(
+            `<div class="field-name-display">${editorItem.external_name}</div>`
+        );
+
+        // add an asterick to required fields.
+        const mandatoryElement = this._getAsterisk();
+        fieldNameElement.append(mandatoryElement); //will be hidden if not appropriate in update
+
+        container.append(fieldNameElement);
+
+        const valueElement = $(`<div class="feature-edit-input" />`);
+        const inputElement = fieldEditor.$el;
+        inputElement.attr('name', editorItem.external_name);
+        valueElement.append(inputElement);
+
+        valueElement.append("<div class='inlineValidation' />");
+
+        container.append(valueElement);
+
+        this.fieldElements[editorItemName] = {
+            fieldNameElement,
+            valueElement,
+            mandatoryElement
+        };
+    }
+
+    /**
+     * Returns a field editor instance, apropriate to edit a given field
+     * @param  {DDFeature}  feature     Feature being edited. Will be used to check if a custom field editor should be used
+     * @param  {fieldDD}        fieldDD     Data dictionary information of the field to edit
+     * @return {FieldEditor}
+     */
+    getFieldEditor(feature, fieldDD) {
+        /* jshint newcap: false */
+        let editorClass;
+
+        const fieldType = fieldDD.baseType;
+        let customFieldEditor;
+
+        const editorOptions = {
+            expandedMode: this.options.useExpandedFieldEditors
+        };
+
+        //check if there is a specific field editor defined for this feature&field
+        customFieldEditor = feature.getCustomFieldEditorFor(fieldDD);
+        if (customFieldEditor) {
+            editorClass = customFieldEditor;
+        } else {
+            const classOrFunction = this.options.fieldEditorMapping[fieldType];
+
+            //a class is also a function (a constructor)
+            //figure out which by checking if it has 'extend' is defined (as it has for a class)
+            if (
+                typeof classOrFunction == 'function' &&
+                typeof classOrFunction.mergeOptions == 'function'
+            ) {
+                //class
+                editorClass = classOrFunction;
+            } else if (typeof classOrFunction == 'function') {
+                editorClass = classOrFunction(fieldDD);
+            }
+
+            if (!editorClass) {
+                throw new Error(
+                    `No field editor class for field ${fieldDD.internal_name}. Type: ${fieldDD.type}`
+                );
+            }
+        }
+        return new editorClass(this, feature, fieldDD, editorOptions);
+    }
+
+    /**
+     * Obtain current values from all the owner's field editors
+     * To be used when evaluating filter expressions
+     * @param  {object}    options
+     * @param  {boolean}   options.includeUndefined  If true undefined values are included in result
+     * @return {object}
+     */
+    getFieldEditorValues(options) {
+        // In popup editors, the owner of a panel is a TabControl, so to get to the FeatureEditor we need to go one level further
+        let owner = this.owner;
+        while (owner) {
+            if (owner.getFieldEditorValues) {
+                return owner.getFieldEditorValues(options);
+            }
+            owner = owner.owner;
+        }
+
+        return this.getValues(options);
+    }
+
+    /**
+     * Adds an asterisk next to the field editor of fields which are mandatory
+     * @return {html}
+     * @private
+     */
+    _getAsterisk() {
+        return $('<span>*</span>').addClass('required-field-notification');
+    }
+
+    /* **************************  Field value manipulation  ********************* */
+
+    /**
+     * Obtain values, including the changes made by the user, to send to the database
+     * Values are obtained from the field editors (html input elements)
+     * @param  {object}    options                   Optional parameters
+     * @param  {string[]}  options.includeUndefined  Flag to include undefined values.
+     * @return {object}                              Values to save, keyed on field name
+     */
+    getValues(options) {
+        const properties = {};
+        const includeUndefined = options?.includeUndefined ?? false;
+        for (const [fieldName, fieldEditor] of Object.entries(this.fieldEditors || {})) {
+            const value = fieldEditor.getValue?.();
+            if (includeUndefined || value !== undefined) {
+                properties[fieldName] = value;
+            }
+        }
+
+        return properties;
+    }
+
+    /* ************************ Form Validation ********************* */
+
+    /**
+     * Validates the geometry and field values according to the data dictionary
+     * If a value is invalid this information is presented to the user
+     * @param  {geojson}    featureJson Feature data to be validated
+     * @param  {object} options Validation options
+     * @param  {Array<string>} [options.valueValidationList] Performs value validation on only the given fields
+     * @return {boolean}                Whether the provided data is valid or not
+     */
+    validateChanges(featureJson, options = {}) {
+        let fieldError = false,
+            value,
+            validationResult;
+
+        const { valueValidationList } = options;
+
+        this.removeValidationHighlight();
+
+        for (const [fieldName, fieldEditor] of Object.entries(this.fieldEditors)) {
+            if (Object.prototype.hasOwnProperty.call(featureJson.properties, fieldName)) {
+                value = featureJson.properties[fieldName];
+                validationResult =
+                    !valueValidationList || valueValidationList.includes(fieldName)
+                        ? fieldEditor.validate(value)
+                        : true;
+                //  Only check predicates if field would normally be valid (strings are considered true)
+                if (validationResult === true) validationResult = fieldEditor.validatePredicates();
+
+                if (validationResult !== true) {
+                    if (typeof fieldEditor.control !== 'undefined' && null !== fieldEditor.control)
+                        fieldEditor.control.$el.addClass('validationHighlight');
+                    // for 'number' fields with units
+                    else fieldEditor.$el.addClass('validationHighlight');
+                    // Add inline validation message
+                    fieldEditor.$el.siblings('.inlineValidation').html(validationResult);
+                    fieldError = true;
+                }
+            }
+        }
+
+        return !fieldError;
+    }
+
+    /**
+     * Remove validation errors if any
+     */
+    removeValidationHighlight() {
+        this.$el.find('.validationHighlight').removeClass('validationHighlight');
+        this.$el.find('.inlineValidation').html('');
+    }
+
+    /**
+     * Removes it self from the dom
+     */
+    close() {
+        this.remove();
+        Object.values(this.fieldEditors).forEach(fieldEditor => {
+            fieldEditor.remove();
+        });
+    }
+}
+
+//returns true if a given field should show an asterisk next to it
+function shouldShowAsterisk(feature, fieldDD, sessionVars, keyFieldName) {
+    const isKeyField = fieldDD.internal_name === keyFieldName;
+    if (isKeyField) return true;
+    if (fieldDD.mandatory.matches(feature, sessionVars)) {
+        //adding an asterisk for a mandatory boolean field that starts with a default value is confusing for the user as he might
+        // think he needs to check the box
+        if (fieldDD.type == 'boolean' && fieldDD.default !== null && fieldDD.default !== undefined)
+            return false;
+
+        return true;
+    }
+
+    return false;
+}
+
+export default FieldEditorsPanel;

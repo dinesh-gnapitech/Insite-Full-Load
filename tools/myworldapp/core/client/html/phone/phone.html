@@ -1,0 +1,88 @@
+<!-- Phone layout Map view-->
+<script type="text/template" id="layout-template">
+    <div class="page current" id="page-map">
+        <div class="map-container">
+            <div class="header">
+                <div id="text-search-control"></div>
+                <div id="text-search-btn" class="map-btn" title="{:search_btn_title}"></div>
+                <div id="menu-btn" class="map-btn menu-btn" title="{:menu_btn_title}"></div>
+            </div>
+            <div id="map_canvas"></div>
+            <div class="bottom"></div>
+        </div>
+        <div id="menu-container">
+            <div id="map-inactive-overlay"></div>
+            <div id="menu"><div class="close-btn" title="{:close}"></div></div>
+        </div>
+    </div>
+</script>
+
+<!-- Feature loading bar-->
+<script type="text/template" id="feature-loading-template">
+    <img id="img-loading" src="<%=loadingGif%>" alt="{:loading}"/>
+</script>
+
+<!-- Feature info bar-->
+<script type="text/template" id="feature-info-template">
+    <div class="center">
+        <div class="feature-title"></div>
+        <div class="feature-desc"></div>
+    </div>
+</script>
+
+<!-- Feature set info bar -->
+<script type="text/template" id="feature-set-info-template">
+    <div class="num-results feature-title"><%=results_msg%></div>
+    <div class="zoom-all-details" title="{:zoom_all}"></div>
+</script>
+
+<!-- No features found message bar -->
+<script type="text/template" id="no-feature-alert-template">
+    <div class="bottom-pane-alert">{:no_features_found}</div>
+</script>
+
+<!-- Feature set item info bar -->
+<script type="text/template" id="feature-set-item-info-template">
+    <span class="feature-brief">
+        <div class="feature-title"><%=title%></div>
+        <div class="feature-desc"><%=desc%></div>
+    </span>
+    <div class="results-list-button" title="{:current_results}"></div>
+</script>
+
+<!-- Edit feature page -->
+<script type="text/template" id="edit-page-template">
+    <div class="page" id="page-edit">
+        <div id="feature-editor" class="verticalScroll"></div>
+    </div>
+</script>
+
+<!-- Page used in edit mode to set/update feature geometry on map -->
+<script type="text/template" id="geom-mode-page-template">
+    <div class="overlay-container" id="page-geomMode">
+        <div class="overlay-header">
+            <div><%=title%></div>
+            <div class="close-btn" title="{:close}"></div>
+        </div>
+        <div class="overlay-body"><%=message%></div>
+        <div class="overlay-buttons">
+            <button class="ui-button primary-btn button-done">{:done}</button>
+        </div>
+    </div>
+</script>
+
+<!-- Maplink overlay pane -->
+<script type="text/template" id="maplink-template">
+    <div class="overlay"></div>
+    <div class="overlay-container">
+        <div class="overlay-header">
+            <div>{:maplink_title}</div>
+            <div class="close-btn maplink-cancel" title="{:close}"></div>
+        </div>
+        <div class="overlay-body"></div>
+        <div class="overlay-buttons">
+            <button class="ui-button primary-btn email_link_btn">{:email_btn}</button>
+            <button class="ui-button maplink-cancel">{:cancel}</button>
+        </div>
+    </div>
+</script>

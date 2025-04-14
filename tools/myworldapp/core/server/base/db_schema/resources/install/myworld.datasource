@@ -1,0 +1,9 @@
+{
+   "name": "myworld",
+   "external_name": "myWorld",
+   "description": "{:myworld_datasource_desc}",
+   "type": "myworld",
+   "spec": {
+       "tilestore": []
+   }
+}

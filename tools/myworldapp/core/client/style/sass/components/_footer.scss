@@ -1,0 +1,60 @@
+#layout-footer {
+    background-color: $color-dark-background;
+    bottom: 0;
+    position: absolute;
+    right: 0;
+    @include size(100%, 19px);
+
+    > div {
+        margin-top: -4px;
+    }
+    div.left {
+        min-width: 25%;
+        float: left;
+        font-size: 14px;
+        height: 100%;
+        text-align: left;
+
+        a {
+            font-weight: 600;
+            color: $color-link-font-secondary;
+        }
+        span {
+            margin-left: 12px;
+        }
+    }
+    div.center {
+        width: 50%;
+        float: left;
+        font-size: 14px;
+
+        img {
+            vertical-align: -2px;
+            width: 54px;
+            padding-left: 1px;
+        }
+    }
+    div.right {
+        text-align: right;
+        position: absolute;
+        top: 0;
+        right: 8px;
+
+        > span:not(:last-child) {
+            margin-right: 2px;
+        }
+    }
+    .plugin-icon {
+        @include size(18px);
+        display: inline-block;
+        overflow: hidden;
+        border-radius: 23px;
+        vertical-align: -4px;
+    }
+    .plugin-message {
+        font-size: 14px;
+        font-weight: 700;
+        cursor: default;
+        padding: 0 6px;
+    }
+}

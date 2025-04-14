@@ -1,0 +1,80 @@
+.values-field-editor {
+    & > .ant-table-wrapper {
+        width: 100%;
+        margin-right: 10px;
+    }
+    .ant-table-small > .ant-table-content > .ant-table-body {
+        margin: 0;
+    }
+
+    .input-container {
+        margin-right: 10px;
+        width: 100%;
+        input.selected {
+            border: 1px solid $primary-color;
+        }
+    }
+    .controls-container {
+        margin-top: 4px;
+        button {
+            margin-right: 3px;
+        }
+    }
+    .ant-table-thead > tr > th {
+        text-align: center;
+        font-weight: normal;
+    }
+    tr:hover .delete-row-btn {
+        display: inline-block;
+        margin: -10px;
+    }
+    tr .delete-row-btn {
+        cursor: pointer;
+        padding: 0 10px;
+    }
+    td .seq-cell {
+        position: relative;
+        .delete-row-btn {
+            cursor: pointer;
+            padding: 10px;
+            background: #fff9eb;
+            position: absolute;
+            top: calc(50% - 10px);
+            left: calc(50% - 7px);
+            line-height: 20px;
+        }
+    }
+    .ant-form-item-control {
+        line-height: 32px;
+    }
+    .value-field-editor-val .ant-form-item-control-wrapper {
+        margin-left: -10px;
+    }
+    .editable-table
+        .ant-table-small
+        > .ant-table-content
+        > .ant-table-body
+        > table
+        > .ant-table-tbody
+        > tr {
+        > td {
+            padding: 2px;
+        }
+        > td:last-child {
+            padding-right: 4px;
+        }
+    }
+    &.key-value-editor {
+        .editable-table
+            .ant-table-small
+            > .ant-table-content
+            > .ant-table-body
+            > table
+            > .ant-table-tbody
+            > tr {
+            > td {
+                padding: 2px 2px 0;
+            }
+        }
+    }
+}

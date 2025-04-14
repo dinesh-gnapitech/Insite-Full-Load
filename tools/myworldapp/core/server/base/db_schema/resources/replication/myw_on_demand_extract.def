@@ -1,0 +1,35 @@
+{
+   "name": "myw_on_demand_extract",
+   "external_name": "Extract",
+   "title": "Extract: [id]", 
+   "track_changes": false, 
+   "editable": false, 
+   "fields": [{
+         "name": "id",
+         "type": "string(64)",
+         "external_name": "Name",
+         "key": true
+     },{
+         "name": "properties",
+         "type": "string",
+         "external_name": "Properties"
+     },{
+         "name": "the_geom",
+         "type": "polygon",
+         "external_name": "Boundary"
+     }
+   ],
+   "groups": [], 
+   "searches": [
+      {
+         "value": "{title}", 
+         "description": "{title}"
+      }
+   ],
+   "queries": [
+      {
+         "value": "extract", 
+         "description": "Extract"
+      }
+   ]
+}

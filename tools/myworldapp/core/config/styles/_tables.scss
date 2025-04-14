@@ -1,0 +1,153 @@
+//@import 'base/_variables';
+
+.myw-list-view {
+    .ant-table-thead {
+        margin-top: 15px;
+        background: $colour-table-header;
+        th,
+        th.ant-table-column-sort {
+            background: $colour-table-header;
+        }
+        & > tr > th {
+            padding: 8px 4px;
+            .ant-table-column-sorter .ant-table-column-sorter-inner {
+                margin-left: 0.2em;
+            }
+        }
+    }
+    .ant-table-column-sorters {
+        padding: 0;
+    }
+    .ant-table-body {
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+    }
+    .ant-table-tbody {
+        > tr.ant-table-row-selected td {
+            background: white;
+        }
+        & > tr > td {
+            padding: 0 2px;
+            &.nowrap {
+                white-space: nowrap;
+                overflow: hidden;
+            }
+        }
+    }
+    .ant-table-thead > tr > th .ant-table-column-sorter-up.on,
+    .ant-table-thead > tr > th .ant-table-column-sorter-down.on {
+        color: #000 !important;
+    }
+    .unselected-row {
+        color: #aaa;
+    }
+
+    &.ant-card:not(.ant-card-bordered) {
+        box-shadow: none;
+    }
+    .ant-card-head {
+        border-bottom: none;
+    }
+    .ant-card-body {
+        padding: 0 24px;
+    }
+    .ant-table-row {
+        height: 38px;
+    }
+    .ant-table-wrapper {
+        .ant-table:not(.ant-table-bordered) .ant-table-tbody {
+            & > tr.ant-table-row:hover > td,
+            & > tr.ant-table-row.ant-table-row-selected > td,
+            & > tr.ant-table-row:hover + tr.ant-table-row > td,
+            & > tr.ant-table-row.ant-table-row-selected + tr.ant-table-row > td {
+                border-top-color: #eee;
+            }
+            & > tr.ant-table-row:last-child:hover > td,
+            & > tr.ant-table-row.ant-table-row-selected:last-child > td {
+                border-bottom-color: #eee;
+            }
+        }
+        .ant-table-thead > tr > th,
+        .ant-table-thead .ant-table-cell-scrollbar {
+            background: #ccc;
+        }
+    }
+}
+
+.ant-tabs .ant-tabs-tab {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.editable-table .ant-table-tbody {
+    & > tr > td {
+        line-height: 40px;
+        padding: 0px 4px;
+    }
+}
+
+.ant-table-scroll .ant-table-body {
+    overflow: auto !important;
+}
+
+.ant-table-fixed-header .ant-table-scroll .ant-table-header {
+    overflow: hidden !important;
+    margin-bottom: 0 !important;
+}
+
+.fixedWidthTable table {
+    table-layout: fixed;
+    .ant-table-header-column {
+        word-wrap: break-word;
+        word-break: break-all;
+    }
+}
+
+.wrap-text {
+    word-break: break-all;
+}
+
+.myw-nested-table {
+    width: 500px;
+    .ant-table-tbody > tr > td {
+        padding: 10px 2px;
+    }
+    tr:hover .delete-row-btn-nested {
+        display: inline-block;
+        margin: -10px;
+    }
+    tr .delete-row-btn-nested {
+        cursor: pointer;
+        padding: 0 10px;
+    }
+    td .seq-cell {
+        position: relative;
+        .delete-row-btn-nested {
+            cursor: pointer;
+            padding: 10px;
+            background: #fff9eb;
+            position: absolute;
+            top: calc(50% - 10px);
+            left: calc(50% - 7px);
+            line-height: 20px;
+        }
+    }
+}
+
+.table-column-wrapping {
+    overflow: hidden;
+    white-space: normal;
+    word-break: break-all;
+}
+
+.ant-table.ant-table-small {
+    border: 1px solid #e8e8e8;
+    border-bottom: 0px;
+    border-radius: 4px;
+}
+
+.myw-editable-skeleton {
+    .ant-skeleton-paragraph {
+        margin: 1em;
+    }
+}

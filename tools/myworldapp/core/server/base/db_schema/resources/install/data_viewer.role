@@ -1,0 +1,7 @@
+{
+   "name": "{:data_viewer_role_name}", 
+   "description": "{:data_viewer_role_desc}", 
+   "permissions": {
+      "standard": []
+   }
+}

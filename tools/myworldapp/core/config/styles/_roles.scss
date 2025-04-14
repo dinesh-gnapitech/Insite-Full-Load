@@ -1,0 +1,15 @@
+.permission-list {
+    margin: -8px 0 2px;
+    .permission-list-item {
+        height: 2em;
+        list-style: none outside none;
+
+        &.hasFeatures {
+            height: 6em;
+        }
+
+        &:last-child {
+            margin-bottom: 10px;
+        }
+    }
+}

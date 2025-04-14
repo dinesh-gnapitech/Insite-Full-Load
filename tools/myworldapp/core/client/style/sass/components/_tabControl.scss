@@ -1,0 +1,40 @@
+.tabControl_tabs {
+    padding: 0;
+}
+.tabControl_nav {
+    margin-bottom: -1px;
+    position: relative;
+    white-space: nowrap;
+    overflow-x: auto;
+    li {
+        display: inline-block;
+        font-size: 1.1em;
+        font-weight: 600;
+        min-width: 55px;
+        text-align: center;
+        padding: 4px 5px 5px;
+    }
+}
+.ui-widget .tabControl_nav li {
+    font-size: 1em;
+}
+.tabControl_tab_space {
+    display: none;
+    overflow: hidden;
+    border-top: $border-dark;
+    height: 100%;
+    margin-top: -1px;
+}
+.foreground_tab {
+    background-color: $color-light-background;
+    border-left: $border-dark;
+    border-right: $border-dark;
+    cursor: default;
+}
+.top-bordered .foreground_tab {
+    border-top: $border-dark;
+}
+.background_tab {
+    background-color: transparent;
+    cursor: pointer;
+}

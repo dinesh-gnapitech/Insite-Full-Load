@@ -1,0 +1,21 @@
+{
+   "username": "default", 
+   "email": " ", 
+   "password": " ", 
+   "locked_out": true, 
+   "roles": [
+      "Administrator",
+      "{:data_editor_role_name}"
+   ], 
+   "bookmarks": {
+      "Home": {
+         "centre": [
+            -67.939453125, 
+            40.4469470596005
+         ], 
+         "zoom": 3, 
+         "private": true, 
+         "basemap": "{:google_layer_name}"
+      }
+   }
+}

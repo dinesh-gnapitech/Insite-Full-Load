@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="62px" height="80px" viewBox="0 0 62 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
+    <title>Untitled</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M56,0 C59.3137085,0 62,2.6862915 62,6 L62,74 C62,77.3137085 59.3137085,80 56,80 L6,80 C2.6862915,80 0,77.3137085 0,74 L0,6 C0,2.6862915 2.6862915,0 6,0 L56,0 Z M55,7 L7,7 L7,73 L55,73 L55,7 Z" id="Shape" fill="#5A5A5A"></path>
+        <rect id="Rectangle" fill="#01BF42" x="12" y="18" width="7" height="7"></rect>
+        <rect id="Rectangle" fill="#01BF42" x="24" y="18" width="26" height="7"></rect>
+        <rect id="Rectangle" fill="#5A5A5A" x="24" y="30" width="23" height="7"></rect>
+        <rect id="Rectangle" fill="#5A5A5A" x="24" y="54" width="23" height="7"></rect>
+        <rect id="Rectangle" fill="#01BF42" x="24" y="42" width="26" height="7"></rect>
+        <rect id="Rectangle" fill="#5A5A5A" x="12" y="30" width="7" height="7"></rect>
+        <rect id="Rectangle" fill="#01BF42" x="12" y="42" width="7" height="7"></rect>
+        <rect id="Rectangle" fill="#5A5A5A" x="12" y="54" width="7" height="7"></rect>
+    </g>
+</svg>

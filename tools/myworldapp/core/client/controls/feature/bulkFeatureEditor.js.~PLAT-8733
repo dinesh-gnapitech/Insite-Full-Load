@@ -1,0 +1,734 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import 'jquery-ui';
+import { isEqual, template, groupBy } from 'underscore';
+import myw, { Util, Browser, msg, BadRequest } from 'myWorld-base';
+import { Control } from 'myWorld/base/control';
+import featureEditorHtml from 'text!html/featureEditor.html';
+import popupFeatureEditorHtml from 'text!html/featureEditorPopup.html';
+import { DisplayMessage } from 'myWorld/controls/displayMessage';
+import { TabControl } from '../tabControl';
+import { FieldEditorsPanel } from './fieldEditorsPanel';
+import { MyWorldFeature } from 'myWorld/features/myWorldFeature';
+
+const { android, isTouchDevice } = Browser;
+/**
+ * Options for BulkFeatureEditor instances
+ * @typedef bulkEditorOptions
+ * @property {Array<DDFeature>}    featureSet               The list of features to be edited
+ * @property {MapControl}   map                         Map on which to edit the feature's geometry
+ * @property {domElement}       [el]                        (from Backbone) Element where the editor should render the UI. If not provided, a popup editor will be used
+ * @property {boolean}  [useTabs=false]                     Whether self is embeded in a list of multiple of features or not
+ * @property {boolean}  [useExpandedFieldEditors=false]     Whether a null value should still be rendered or not
+ * @property {boolean}  [useSoftKeyboardInput=true]         Whether to use the softKeyboardInput on touch devices
+ * @property {string}   [actionButtonsPanelHeight='58px']   The height of the action buttons panel. Should be updated in case custom buttons have been added
+ * @property {string}   [phoneActionButtonsAndHeaderHeight='55px']   The height of the action buttons panel in the phone layout. Should be updated in case custom buttons have been added
+ */
+
+export class BulkFeatureEditor extends Control {
+    static {
+        this.mergeOptions({
+            useTabs: false,
+            useExpandedFieldEditors: false,
+            useSoftKeyboardInput: true,
+            fieldEditorsPanelClass: FieldEditorsPanel,
+            actionButtonsPanelHeight: '58px',
+            phoneActionButtonsAndHeaderHeight: '55px'
+        });
+
+        this.prototype.messageGroup = 'FeatureEditor';
+        this.prototype.template = template(featureEditorHtml);
+        this.prototype.templatePopup = template(popupFeatureEditorHtml);
+
+        this.prototype.events = {
+            'click .cancel:not(:disabled)': 'cancel',
+            'click .save:not(:disabled)': 'save'
+        };
+    }
+
+    /**
+     * @class  A UI control for editing or creating a set of features, performing field validation <br/>
+     *         Triggers a 'cancelled' event when editing has been cancelled.<br/>
+     *         Custom editors can be used by registering sub-classes as feature models. See {@link DDFeature}. <br/>
+     *         Field editors are rendered using {@link FieldEditorsPanel}
+     * @param  {Application|Control}    owner
+     * @param  {bulkEditorOptions}           options
+     * @constructs
+     * @extends {Control}
+     * @fires cancelled
+     */
+    constructor(owner, options) {
+        super(owner, options);
+
+        this.popup = !options.el; // no element provided means we should popup a dialog for the editor
+
+        this.featureSet = options.featureSet;
+        this.datasource = this.featureSet[0].datasource; //  ENH: This assumes that the datasource is the same for all features (MyWorldDatasource)
+
+        ['_createCommonFeatureAndFeatureDD', '_handleSaveError'].forEach(
+            method => (this[method] = this[method].bind(this))
+        );
+
+        //ensure we have the necessary properties before building the UI
+        //ENH: there may be no need to request lobs once image fields have a better editor
+        /* Promise fullfilled when the UI is ready
+         * @type {Promise} */
+        this.ready = Promise.all(
+            this.featureSet.map(feature => feature.ensure(['simple', 'display_values', 'lobs']))
+        ).then(async () => {
+            this._createCommonFeatureAndFeatureDD();
+            await this.initUI();
+            this.on('change', () => {
+                const featureData = this.getChanges(this.feature);
+                this.fieldPanels.forEach(panel => panel.update(featureData));
+                this._updateSaveEnabled();
+            });
+
+            this.trigger('ready');
+        });
+    }
+
+    /**
+     * Takes an array of features and returns a featureDD that can be used by all of them
+     * @param {Array<Feature>} featureSet
+     * @returns {object} featureDD that can be used by all provided features
+     */
+    _createCommonFeatureAndFeatureDD() {
+        //  If the features are all the same type, just return the first in the list
+        const displayName = this.msg('bulk_title', { count: this.featureSet.length });
+
+        const processedDDs = [];
+        const properties = {
+            ...this.featureSet[0].properties
+        };
+        this.featureSet.forEach((feature, index) => {
+            const featureDD = feature.featureDD;
+
+            //  Take the first featureDD as is, except for the IMAGE and FILE fields
+            if (index === 0) {
+                processedDDs.push(featureDD);
+                Object.assign(properties, feature.properties);
+                const fields = {};
+                let fields_order = [];
+                let field_groups = JSON.parse(JSON.stringify(featureDD.field_groups));
+                for (let fieldName of featureDD.fields_order) {
+                    const fieldDD = featureDD.fields[fieldName];
+                    if (fieldDD.isBulkEditable(feature)) {
+                        fields[fieldName] = fieldDD;
+                        fields_order.push(fieldName);
+                    } else {
+                        //field is excluded, exclude from field groups and exclude empty field groups
+                        field_groups = field_groups.filter(field_group => {
+                            field_group.fields = field_group.fields.filter(
+                                field => field.field_name != fieldName
+                            );
+                            return field_group.fields.length;
+                        });
+                    }
+                }
+                //  Ensure that myw_geometry_world_name doesn't make its way in to the feature
+                if (properties.myw_geometry_world_name) {
+                    delete properties.myw_geometry_world_name;
+                    fields_order = fields_order.filter(field => field != 'myw_geometry_world_name');
+                }
+                this.featureDD = {
+                    ...featureDD,
+                    fields,
+                    fields_order,
+                    field_groups,
+                    external_name: displayName
+                };
+                return;
+            }
+
+            //  For each field, determine whether or not its present and the same type
+            if (!processedDDs.includes(featureDD)) {
+                for (let [fieldName, prevDD] of Object.entries(this.featureDD.fields)) {
+                    const currentDD = featureDD.fields[fieldName];
+                    if (
+                        !currentDD?.isBulkEditable(feature) ||
+                        !isEqual(prevDD.definition(), currentDD.definition())
+                    ) {
+                        delete properties[fieldName];
+                        delete this.featureDD.fields[fieldName];
+                        this.featureDD.fields_order = this.featureDD.fields_order.filter(
+                            a => a != fieldName
+                        );
+                        this.featureDD.field_groups = this.featureDD.field_groups.filter(
+                            field_group => {
+                                field_group.fields = field_group.fields.filter(
+                                    field => field.field_name != fieldName
+                                );
+                                return field_group.fields.length;
+                            }
+                        );
+                    } else {
+                        //  ENH: Find a way to make it so that type lengths can be different, eg. allow string(80) and string(70) as string(70)
+                    }
+                }
+                processedDDs.push(featureDD);
+            }
+
+            //  If the properties aren't the same across features, reset to null
+            for (let property in properties) {
+                if (properties[property] != feature.properties[property]) {
+                    properties[property] = null;
+                }
+            }
+        });
+        const self = this;
+        class FeatureAmalgamation extends MyWorldFeature {
+            static {
+                this.prototype.datasource = self.datasource;
+                this.prototype.database = self.datasource.database;
+                this.prototype.featureDD = self.featureDD;
+                this.prototype.usePopupEditor = false;
+            }
+        }
+
+        this.feature = new FeatureAmalgamation({
+            properties
+        });
+    }
+
+    /**
+     * Renders the editor
+     */
+    async initUI() {
+        await this.render();
+        this._updateSaveEnabled();
+        this.origFieldEditorValues = this.getFieldEditorValues();
+    }
+
+    /**
+     * Builds a form for feature editing. <br/>
+     * Includes the field editors, and buttons for saving and canceling
+     * @param  {DDFeature}  feature     The feature to be edited
+     * @param  {jQueryElement}  container   The container where the editor should be rendered
+     * @private
+     */
+    render() {
+        const templateValues = this.getTemplateValues();
+
+        if (this.popup) {
+            //weren't given an element to render on.
+
+            //Updates the jquery ui title to use an html instead of just text
+            $.widget(
+                'ui.dialog',
+                $.extend({}, $.ui.dialog.prototype, {
+                    _title(title) {
+                        title.html(this.options.title || '&#160;');
+                    }
+                })
+            );
+
+            //open a dialog to render on
+            this.openPopupDialog();
+        }
+
+        const template = this.popup ? this.templatePopup : this.template;
+        this.$el.html(template(templateValues));
+        this.$('.button').button(); //styles buttons with jquery-ui
+
+        this.fieldEditorsEl = this.$('#field-editors');
+
+        if (this.featureDD.fields_order.length) {
+            this.renderFieldEditors();
+        } else {
+            this.fieldEditorsEl.html(this.msg('bulk_no_common_fields'));
+        }
+        const actionButtonsPanelHeight = this.app.isHandheld
+            ? this.options.phoneActionButtonsAndHeaderHeight
+            : this.options.actionButtonsPanelHeight;
+
+        const panelHeaderHeight = this.$('.panel-header').outerHeight();
+        this.$('.feature-edit-container').css(
+            'height',
+            `calc(100% - ${actionButtonsPanelHeight} - ${panelHeaderHeight}px)`
+        );
+
+        this.translate(this.$el);
+
+        if (this.options.useSoftKeyboardInput) myw.softKeyboardInput.enableOn(this.$el, this.app);
+    }
+
+    _updateSaveEnabled() {
+        const changedFields = this.getChangedFields(this.feature);
+        this.$el.find('.save').attr('disabled', !changedFields.length);
+    }
+
+    /**
+     * Converts self's element into a dialog and add it to the dom
+     */
+    openPopupDialog() {
+        const isMasterView = this.feature.datasource.options.masterMode;
+        const masterIcon = $('<span>', {
+            class: 'master-layer-icon',
+            title: msg('LayerControl', 'master_layer')
+        });
+
+        const title = `${this.feature.getTitle()}${isMasterView ? masterIcon[0].outerHTML : ''}`;
+
+        $(':root').append(this.el);
+        this.$el.dialog({
+            modal: false,
+            width: 'auto',
+            resizable: false,
+            position: { my: 'left top', at: 'left+50 top+50', of: window },
+            title,
+            closeText: this.msg('close_tooltip'),
+            close: (event, ui) => {
+                this.cancel();
+            }
+        });
+
+        if (isTouchDevice && android) {
+            //Allows 'x' (in the draggable titlebar) click to work on android touch devices
+            this.$el
+                .dialog('widget')
+                .find('.ui-dialog-titlebar-close')
+                .mousedown(() => {
+                    this.$el.dialog('close');
+                });
+        }
+
+        // Resize the editor dialog on window resize
+        $(window)
+            .resize(() => {
+                const panelHeight = $(window).height() - 120;
+                this.$el.css({
+                    'max-height': panelHeight,
+                    'overflow-y': 'auto'
+                });
+            })
+            .resize();
+
+        this.delegateEvents();
+    }
+
+    /**
+     * Renders field editors.
+     * If options.useTabs is true and field groups definitions exist <br/>
+     * it will render using several tabs - one per group. Each tab is rendered using {@link FieldEditorsPanel} <br/>
+     * Otherwise it renders all fields using a single {@link FieldEditorsPanel}
+     */
+    renderFieldEditors() {
+        const groups = this.feature.getFieldGroups();
+        this.tabbed = this.options.useTabs && groups?.length > 1;
+
+        if (this.tabbed) {
+            //there are more than 1 field group definitions. Create a tab for each group
+            this.renderTabs();
+        } else {
+            //only one panel with fieldEditors
+            this.renderFieldEditorsSinglePane();
+        }
+
+        this.fieldPanels.forEach(fieldPanel => {
+            //propagate value change events
+            this.listenTo(fieldPanel, 'change', this._propagateEvent);
+        });
+    }
+
+    /**
+     * Renders all field editors as a single panel
+     */
+    renderFieldEditorsSinglePane() {
+        // jshint newcap: false
+        const fieldEditorsPanelClass = this.options.fieldEditorsPanelClass;
+
+        const feature = this.feature;
+        const fieldNames = feature.getFieldsOrder();
+        let fieldEditorsPanel;
+
+        if (this.feature.isNew) this.addKeyFieldTo(fieldNames);
+
+        fieldEditorsPanel = new fieldEditorsPanelClass(this, {
+            el: this.fieldEditorsEl,
+            feature: feature,
+            fields: fieldNames,
+            useExpandedFieldEditors: this.options.useExpandedFieldEditors
+        });
+
+        this.fieldPanels = [fieldEditorsPanel];
+    }
+
+    /**
+     * Renders field editors grouping them in tabs acording to field group definitions
+     */
+    renderTabs() {
+        //get tab definitions
+        const tabs = this._getTabDefinitions();
+
+        this.tabControl = new TabControl(this, {
+            el: this.$('#field-editors'),
+            tabs: tabs,
+            initialTab: tabs[0].id
+        });
+
+        // Add a top border to the tab buttons
+        this.tabControl._tabButtons.addClass('top-bordered');
+
+        //set the list of the field panels for simpler access when obtaining changes and validating (same as non-tabbed editor)
+        this.fieldPanels = [];
+        //Normally would have to wait for tabControl to be ready but since we are
+        //not using the tabControl's html option, our tabs are rendered synchronously,
+        //so we don't need to wait for initialized to fulfill
+        Object.values(this.tabControl.tabs).forEach(tab => {
+            if (tab.control) {
+                //store the tab button with the control to make it easier to access when we need to highlight the button
+                tab.control.button = tab.button;
+                this.fieldPanels.push(tab.control);
+                this.listenTo(tab.control, 'change', this._propagateEvent);
+            }
+        });
+    }
+
+    /**
+     * Returns the list of tab definitions to render in the UI
+     * @return {Array<tabDefinition>}
+     * @private
+     */
+    _getTabDefinitions() {
+        const tabs = this.feature.getFieldGroups().map(fieldGroup => {
+            const fields = fieldGroup.fields.map(f => f.field_name);
+            return {
+                id: this.getSafeIdFrom(fieldGroup.display_name),
+                title: fieldGroup.display_name,
+                control: [
+                    this.options.fieldEditorsPanelClass,
+                    {
+                        feature: this.feature,
+                        fields: fields,
+                        useExpandedFieldEditors: this.options.useExpandedFieldEditors
+                    }
+                ]
+            };
+        });
+
+        if (this.feature.isNew) this.addKeyFieldTo(tabs[0].control[1].fields);
+        return tabs;
+    }
+
+    /**
+     * If the key field does not have a generator and is not included in the fieldNames,
+     * adds it to the fieldNames
+     * @param {array<string>} fieldNames   List of field names to show in the editor
+     */
+    addKeyFieldTo(fieldNames) {
+        const featureDD = this.feature.featureDD;
+        const keyField = featureDD.key_name;
+        const needsKeyField =
+            !fieldNames.includes(keyField) && !featureDD.fields[keyField].generator;
+        if (needsKeyField) {
+            fieldNames.unshift(keyField); //Pushes the keyfield to the top of the array
+        }
+    }
+
+    /**
+     * Obtains the values to use in the html template.
+     * Override in sub-classes if using a diferent template
+     * @return {object}         keyed on field name
+     */
+    getTemplateValues() {
+        const templateValues = {};
+        templateValues.deletable = false;
+
+        //figure out title
+        let title = this.feature.getTitle();
+        if (this.feature.isNew) title = this.msg('detached_feature_title', { title: title });
+        templateValues.myw_title = title;
+
+        templateValues.geometries = [];
+        templateValues.myw_short_description = this.feature.getShortDescription();
+        templateValues.masterView = this.feature.datasource.options.masterMode;
+        templateValues.isLocked = false;
+        return templateValues;
+    }
+
+    _propagateEvent(ev) {
+        this.trigger('change', ev);
+    }
+
+    /* **************************  Field value manipulation  ********************* */
+    /**
+     * Obtain values, including the changes made by the user, to send to the database
+     * Values are obtained from the html input elements
+     * @param  {DDFeature}  feature     Feature being inserted/updated
+     * @return {geojson}                    Feature data in geojson format
+     */
+    getChanges(feature) {
+        const featureData = {
+            type: 'Feature',
+            properties: { ...feature.properties }
+        };
+
+        //exclude calculated fields from data to send
+        Object.values(feature.featureDD.fields).forEach(fieldDD => {
+            if (fieldDD.value) delete featureData.properties[fieldDD.internal_name];
+        });
+        //add values from field editors
+        const fieldEditorValues = this.getFieldEditorValues();
+        Object.assign(featureData.properties, fieldEditorValues);
+
+        return featureData;
+    }
+
+    /**
+     * Obtain values which have been changed by the user
+     * Values are obtained from the html input elements
+     * @param  {DDFeature}  feature     Feature being inserted/updated
+     * @return {geojson}                    Feature data in geojson format
+     */
+    getChangedFields(feature) {
+        const oldProps = { ...this.origFieldEditorValues };
+        const newProps = this.getFieldEditorValues();
+
+        //exclude calculated fields from data to send
+        Object.values(feature.featureDD.fields).forEach(fieldDD => {
+            if (fieldDD.value) {
+                delete oldProps[fieldDD.internal_name];
+                delete newProps[fieldDD.internal_name];
+            }
+        });
+
+        const diffedFields = Object.keys(oldProps).filter(key => oldProps[key] !== newProps[key]);
+        return diffedFields;
+    }
+
+    /**
+     * Obtain current values from field editors
+     * @return {object}
+     */
+    getFieldEditorValues() {
+        const editorValues = {};
+
+        //get changes from each of the forms and merge them
+        this.fieldPanels?.forEach(fieldPanel => {
+            const panelValues = fieldPanel.getValues();
+            Object.assign(editorValues, panelValues);
+        });
+        return editorValues;
+    }
+
+    /**
+     * Returns the field editor being used to edit a given field
+     * @param  {string} fieldName Name of the field
+     * @return {FieldEditor}
+     */
+    getFieldEditor(fieldName) {
+        const fieldPanel = this.fieldPanels.find(
+            fieldPanel => !!fieldPanel.fieldEditors[fieldName]
+        );
+
+        return fieldPanel.fieldEditors[fieldName];
+    }
+
+    /**
+     * Returns the current editor value for a given field
+     * @param  {string} fieldName Name of the desired field
+     * @return {string|number}           current value of the field editor
+     */
+    getValue(fieldName) {
+        return this.getFieldEditor(fieldName).getValue();
+    }
+
+    /**
+     * Sets the current value of a field editor
+     * @param {string} fieldName Name of the field
+     * @param {string|number|date|object} value     New value for the field
+     */
+    setValue(fieldName, value) {
+        return this.getFieldEditor(fieldName).setValue(value);
+    }
+
+    /* ************************ Data Validation ********************* */
+
+    /**
+     * Validates the field values according to the data dictionary
+     * If a value is invalid this information is presented to the user
+     * @param  {geojson}    featureJson Feature data to be validated
+     * @param {array<string>} changedFields The list of fields that have changed values
+     * @return {boolean}                Whether the provided data is valid or not
+     */
+    async validateChanges(featureJson, changedFields) {
+        let validFormData = true;
+        let isValid;
+
+        this.fieldPanels.forEach(fieldPanel => {
+            isValid = fieldPanel.validateChanges(featureJson, {
+                valueValidationList: changedFields
+            });
+            validFormData = validFormData && isValid;
+            fieldPanel.button?.toggleClass('invalid-tab-content', !isValid);
+        });
+
+        const isDataValid = validFormData;
+        const message = this.msg('invalid_data');
+        if (!isDataValid) this.displayMessage(message, 'error');
+
+        return isDataValid;
+    }
+
+    /* ************************ Database operations********************* */
+
+    /**
+     * Handler for the save button.
+     * Gets the changes, validates them and if valid saves them to the database
+     */
+    async save() {
+        const feature = this.feature;
+        const featureJson = this.getChanges(feature);
+        const changedFields = this.getChangedFields(feature);
+
+        if (changedFields.length == 0) {
+            this.cancel();
+            return;
+        }
+
+        const validated = await this.validateChanges(featureJson, changedFields);
+        if (!validated) return;
+
+        //  We want to confirm that the user actually wants to do this
+        const confirmDialog = myw.confirmationDialog({
+            title: this.msg('bulk_title', {
+                count: this.featureSet.length
+            }),
+            msg: this.msg('save_x_objects_confirm', {
+                count: this.featureSet.length
+            })
+        });
+        const confirmed = await confirmDialog.confirmPromise;
+        if (!confirmed) return;
+
+        //for the situation where the  save takes some time,
+        //disable the buttons (to avoid the user repeating the save thinking we could cancel the save that is already on its way)
+        this.$('.button').attr('disabled', true);
+        //and display an information message
+        this.displayMessage(this.msg('saving'), 'alert');
+
+        const savedFeatures = await this.updateFeatures(featureJson, changedFields).catch(reason =>
+            this._handleSaveError(reason, this.msg('problem_saving'))
+        );
+
+        if (!savedFeatures) return;
+
+        await Util.delay(1000); //wait for a second before closing the editor (so the user can see the success message)
+        this.close();
+        this.app.setCurrentFeatureSet(savedFeatures);
+    }
+
+    _handleSaveError(reason, defaultMessage) {
+        let rethrow = true;
+        let message;
+
+        if (reason.messageGroup && reason.messageId) {
+            message = msg(reason.messageGroup, reason.messageId);
+            rethrow = false;
+        } else if (reason.messageId) {
+            message = this.msg(reason.messageId);
+            rethrow = false;
+        } else if (reason instanceof BadRequest) {
+            // some of the data is invalid (wasn't caught in validation...)
+            message = this.msg('invalid_data_no_field');
+            rethrow = false;
+        } else {
+            // Unexpected error
+            message = defaultMessage;
+        }
+        this.displayMessage(message, 'error');
+        this.$('.button').attr('disabled', false); // Activate the buttons again so another action can be performed
+        if (rethrow) throw reason;
+    }
+
+    /**
+     * Sends a set of changes to a feature to the database
+     * @param  {featureData} featureJson
+     * @param {array<string>} changedFields The list of fields that have changed values
+     * @return {DDFeature}
+     */
+    async updateFeatures(featureJson, changedFields) {
+        const preUpdateGeoJsons = [];
+        const propertiesToMerge = { ...featureJson.properties };
+        for (let prop in propertiesToMerge) {
+            if (!changedFields.includes(prop)) delete propertiesToMerge[prop];
+        }
+
+        //start by running pre update hook
+        await Promise.all(
+            this.featureSet.map(feature => {
+                let geoJson = feature.asGeoJson();
+                preUpdateGeoJsons.push(geoJson);
+                geoJson = {
+                    ...geoJson,
+                    properties: { ...geoJson.properties, ...propertiesToMerge }
+                };
+                return feature.preUpdate(geoJson, this.app);
+            })
+        );
+
+        //  Perform the bulk update transaction here
+        await this.datasource.bulkUpdateFeatures(this.featureSet, propertiesToMerge);
+
+        await Promise.all(
+            this.featureSet.map(async (feature, index) => {
+                await feature.update(); //refresh feature properties
+                await feature.posUpdate(preUpdateGeoJsons[index], this.app); //run post update hook
+            })
+        );
+
+        //  Fire the corresponding featureCollection-modified events
+        const featuresByType = groupBy(this.featureSet, feature => feature.getType());
+        for (const [featureType, features] of Object.entries(featuresByType)) {
+            this.app.fire('featureCollection-modified', {
+                changeType: 'update',
+                featureType,
+                features
+            });
+        }
+
+        this.displayMessage(this.msg('saved_ok'));
+        return this.featureSet;
+    }
+
+    displayMessage(message, type) {
+        new DisplayMessage({ el: this.$('.message-container'), type: type, message: message });
+
+        // Scroll to the bottom of the scrollable form element so the message is clearly visible
+        // No scroll needed in the pop up feature editor
+        const el = this.$('.feature-fields-and-map-label')[0];
+        if (el) el.scrollTop = el.scrollHeight;
+    }
+
+    /**
+     * Handler for when the user cancels the editing <br/>
+     * Either by clicking the cancel button or the dialog close button.
+     * Closes the editor and triggers the 'cancelled' event
+     */
+    cancel() {
+        this.close();
+
+        this.trigger('cancelled');
+
+        this.app.setCurrentFeatureSet(this.featureSet);
+    }
+
+    /**
+     * Removes UI elements, clears event handlers
+     */
+    close() {
+        if (this.popup) {
+            //we added our own element to the dom to render the editor
+            //remove the element from the dom
+            this.remove();
+        }
+
+        this.fieldPanels.forEach(panel => panel.close());
+
+        //self can be reused, so we need to remove event handlers, otherwise we can get duplicate ones
+        this.undelegateEvents();
+    }
+}
+
+export default BulkFeatureEditor;

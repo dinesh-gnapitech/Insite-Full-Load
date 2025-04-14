@@ -1,0 +1,8 @@
+{
+   "name": "config", 
+   "external_name": "{:config_app_name}", 
+   "description": "{:config_app_desc}", 
+   "javascript_file": "main.config.js", 
+   "image_url": "images/application_config.png",
+   "for_native_app": false
+}

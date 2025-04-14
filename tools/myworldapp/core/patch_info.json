@@ -1,0 +1,206 @@
+{
+   "PLAT-7485": {
+      "title": "client: fieldEditorsPanel: field editors panel incorrectly referencing featureEditor values",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-7672": {
+      "title": "client: encoding delta name before sending delta name to server",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8012": {
+      "title": "tools: accept proj pipelines as well as coord sys when loading data.",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8275": {
+      "title": "client: featureEditor: Fix readonly geometries still editable",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8428": {
+      "title": "Server: added MywVersionedFeatureTable.changes() method",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8567": {
+      "title": "client: context-menu: improved device detection for ios context menu fix",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8615": {
+      "title": "client: help tab: Fixes broken user guide link",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8632": {
+      "title": "server: Added header to support resuming of downloads from iOS",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8634": {
+      "title": "PLAT-8634 Anywhere Windows Native: OK button from GPS device expanded panel causes Uncaught Error (#1094)",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8648": {
+      "title": "Server: Tools: Db: Workaround for zero length linestrings.",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8667": {
+      "title": "client: userLocation: Show disclosure dialog in Android",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8670": {
+      "title": "updated kmlLayer to convert kml features using ol user projection",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8687": {
+      "title": "client: Fixes AntD modal backdrop rendering in front of modal",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8690": {
+      "title": "client: Fixes expanded mode dropdown menu in popup editors",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8694": {
+      "title": "client: tabs: Makes tabs scrollable in case they don't fit available width",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8733": {
+      "title": "client, api: handle preUpdate() triggers in bulk update",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8743": {
+      "title": "Client: vector rendering: fix labels using a calculated field",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8779": {
+      "title": "client: Fix for 'x' button in dialog titlebar not working on android touch devices",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8784": {
+      "title": "docs: fix to upgrade command in 7.0 release notes",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8798": {
+      "title": "client: soft keyboard input: Fix for field names in the title (for touch devices)",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8811": {
+      "title": "client: Fix for dropdown field editor obscured by iOS Keyboard",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8825": {
+      "title": "client: helpList: Makes the link to the user guide relative for connected",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8844": {
+      "title": "server: More thorough checking for DetatchedInstanceErrors in caches.",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8867": {
+      "title": "client: Fixes DateFieldViewer not taking the local timezone into account",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8870": {
+      "title": "client: attachments list: Fix to launch the camera app on android devices when 'take photo' button is clicked",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8874": {
+      "title": "Client: Fixed dialog for photo editor in Android",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8876": {
+      "title": "server: tools: update for patch PLAT-8648 to reduce performance problems",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8913": {
+      "title": "client: fixed style issue when using google base maps causing iOS keyboard to displace window",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8914": {
+      "title": "client: styles updated to fix feature editor on iOS with notch",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-8949": {
+      "title": "Client: Fixed tabControl visibilityChanged call",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-9024": {
+      "title": "oidc: updated auth engine to support request parameters upon signin",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-9102": {
+      "title": "Client: Bookmarks: 7.1 compatibility patch",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-9218": {
+      "title": "Addressed NPM dependency vulnerabilities",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   },
+   "PLAT-9295": {
+      "title": "Storing redirect_to and params in OIDC state session",
+      "applied": "2024-01-31 15:58:48",
+      "user": "root",
+      "conflicts": false
+   }
+}

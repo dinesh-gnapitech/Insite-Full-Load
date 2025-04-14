@@ -1,0 +1,18 @@
+// Copyright: IQGeo Limited 2010-2023
+import { convertToLocalDate } from './dateUtils';
+import { FieldViewer } from './fieldViewer';
+
+/**
+ * Displays a date field value with a locality sensitive representation of the date portion of this date based on system settings
+ * Uses Date.prototype.toLocaleDateString()
+ * @name DateFieldViewer
+ * @constructor
+ * @extends {FieldViewer}
+ */
+export class DateFieldViewer extends FieldViewer {
+    convertValue() {
+        return convertToLocalDate(this.fieldValue);
+    }
+}
+
+export default DateFieldViewer;

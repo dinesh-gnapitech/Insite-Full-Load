@@ -1,0 +1,10 @@
+{
+   "username": "admin", 
+   "email": " ", 
+   "password": "b34ed43434bf57ebedb84b4714d5c669", 
+   "roles": [
+      "Administrator"
+   ], 
+   "state": {}, 
+   "bookmarks": {}
+}

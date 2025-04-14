@@ -1,0 +1,18 @@
+<script type="text/template" id="measure-tool-template">
+    <div class="measure-tool-measure">
+        <!-- Added autofocus attribute so the default focus is not on the select menu (caused the select menu to auto open in safari) -->
+        <span class="measure-tool-label" id="measurement-tool-length-label" autofocus>{:length} :</span>
+        <span class="measure-tool-calc" id="measurement-tool-distance">0.00</span>
+        <span class="measure-tool-units right">
+            <select id="measurement-tool-length-units-list"><%=lengthOptions %></select>
+        </span>
+    </div>
+    <div class="measure-tool-measure">
+        <span class="measure-tool-label" id="measurement-tool-area-label">{:area} : </span>
+        <span class="measure-tool-calc" id="measurement-tool-area">0.00</span>
+        <span class="measure-tool-units right">
+            <select id="measurement-tool-area-units-list"><%=areaOptions %></select>
+        </span>
+    </div>
+    <div class="clearit"></div>
+</script>

@@ -1,0 +1,28 @@
+#layers-page {
+    height: 100%;
+}
+#layers-overlays-container {
+    overflow: auto;
+    height: calc(100% - 41px) !important;
+}
+#layers-overlays {
+    width: 100%;
+    > table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+}
+.overlay-button .master-layer-icon {
+    margin-top: -19px;
+}
+.text-layer-search {
+    margin-top: 25px;
+}
+.master-layer-icon {
+    background: url('#{$path-to-img}master-layer.svg') no-repeat center transparent;
+    background-size: 16px;
+    @include size(16px);
+    position: absolute;
+    right: 50px;
+    top: 11px;
+}

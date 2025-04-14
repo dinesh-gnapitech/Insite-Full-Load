@@ -1,0 +1,27 @@
+# Copyright: IQGeo Limited 2010-2023
+
+from sqlalchemy.sql import null
+
+from .myw_field import MywField
+
+
+class MywStringField(MywField):
+    """
+    Wrapper for accessing an string field
+    """
+
+    def asDbValue(self, value, truncate=True):
+        """
+        Cast property VALUE to GeoAlchemy field format
+        """
+
+        # Make 'None' mean 'null' in database (rather than 'use default')
+        if value is None or value == "":
+            return null()
+
+        if truncate and hasattr(self.column_def.type, "length"):
+            max_size = self.column_def.type.length
+            if max_size is not None and len(value) > max_size:
+                return str(value)[:max_size]
+
+        return value

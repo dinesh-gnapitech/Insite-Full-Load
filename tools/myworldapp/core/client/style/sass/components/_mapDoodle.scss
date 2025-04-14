@@ -1,0 +1,69 @@
+.map-doodle-container {
+    width: 100%;
+    @include flex-row-centered;
+    margin-top: 6px;
+    input {
+        width: 100%;
+        margin-left: 5px;
+    }
+}
+.map-doodle-canvas {
+    z-index: 10000 !important;
+}
+.ui-dialog .ui-dialog-content.map-doodle-canvas {
+    padding: 0;
+    margin: 0.5em;
+}
+.ui-dialog.doodle-color-picker-dialog {
+    z-index: 10004 !important;
+}
+.ui-dialog.doodle-update-dialog {
+    z-index: 10003 !important;
+    text-align: center;
+}
+.loading-spinner,
+.loading-spinner:after {
+    border-radius: 50%;
+    width: 10em;
+    height: 10em;
+}
+.loading-spinner {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    font-size: 10px;
+    text-indent: -9999em;
+    border-top: 1.1em solid #ccc;
+    border-right: 1.1em solid #ccc;
+    border-bottom: 1.1em solid #ccc;
+    border-left: 1.1em solid rgba(0, 255, 0, 0.8);
+    -webkit-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation: load8 1.1s infinite linear;
+    animation: load8 1.1s infinite linear;
+    z-index: 1000 !important;
+}
+@-webkit-keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+@keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}

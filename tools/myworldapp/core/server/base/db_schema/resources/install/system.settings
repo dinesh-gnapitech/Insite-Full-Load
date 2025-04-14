@@ -1,0 +1,73 @@
+{
+   "core.defaultMarkerStyleHighlight": {
+      "iconUrl": "images/circle-fill2.svg", 
+      "iconAnchor": [
+         18, 
+         18
+      ]
+   }, 
+   "core.defaultMarkerStyleNormal": {
+      "iconUrl": "images/circle-empty2.svg", 
+      "iconAnchor": [
+         18, 
+         18
+      ]
+   }, 
+   "core.defaultPolygonStyleHighlight": {
+      "color": "#FF0000", 
+      "opacity": 0.5, 
+      "fillColor": "#FF0000", 
+      "weight": 7, 
+      "fillOpacity": 0.25
+   }, 
+   "core.defaultPolygonStyleNormal": {
+      "color": "#0000FF", 
+      "opacity": 0.5, 
+      "fillColor": "#0000FF", 
+      "weight": 5, 
+      "fillOpacity": 0.25
+   }, 
+   "core.defaultPolylineStyleHighlight": {
+      "color": "#FF0000", 
+      "opacity": 0.75, 
+      "weight": 7
+   }, 
+   "core.defaultPolylineStyleNormal": {
+      "color": "#0000FF", 
+      "opacity": 0.5, 
+      "weight": 5
+   }, 
+   "core.exportEncoding": "utf-8", 
+   "core.featureDetails": {
+      "attributeDisplayMode": "medium", 
+      "exportControls": {
+         "export-to-json": true, 
+         "export-to-csv": true
+      }
+   },
+   "core.queryResultLimit": 500, 
+   "core.searchExamples": [], 
+   "core.plugin.measureTool": {
+      "defaultLengthUnit": "ft",
+      "defaultAreaUnit": "ft^2"
+   },
+   "core.plugin.streetview": {
+      "note": {
+         "z-orientation": 3, 
+         "base": {
+            "iconUrl": "images/info32.png", 
+            "iconAnchor": [
+               16, 
+               32
+            ]
+         }, 
+         "bright": {
+            "iconUrl": "images/info32-bright.png", 
+            "iconAnchor": [
+               16, 
+               32
+            ]
+         }
+      }
+   }
+}

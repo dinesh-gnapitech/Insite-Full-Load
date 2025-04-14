@@ -1,0 +1,121 @@
+#user-group-editor,
+#user-groups-manager,
+.create-user-group-form {
+    &.list li,
+    .list li {
+        line-height: 1.5;
+
+        &:not(.not-editable):not(.selected-group):hover {
+            background-color: #f6f6f6;
+            color: $color-link-font;
+            cursor: pointer;
+        }
+    }
+    .full-width {
+        width: calc(100% - 16px);
+        margin-top: 5px;
+        resize: vertical;
+    }
+}
+#user-groups-manager {
+    padding: 0;
+    & > li {
+        padding: 5px 15px;
+        &.selected-group {
+            &:not(:last-child) {
+                border-bottom: 1px solid #ddd;
+            }
+            &:not(:first-child) {
+                border-top: 1px solid #ddd;
+            }
+        }
+    }
+    .group-manager-msg {
+        padding: 10px 16px;
+    }
+}
+.user-group-editor {
+    li {
+        position: relative;
+        padding: 5px 5px 5px 14px;
+        list-style-type: none;
+        input {
+            width: calc(100% - 96px);
+        }
+    }
+    .group-members {
+        margin-left: 3px;
+        margin-top: 8px;
+        .members-list {
+            margin: 0 -13px;
+        }
+        .add-member-btn {
+            margin: 6px 0;
+        }
+    }
+    strong {
+        font-weight: 600;
+    }
+    .remove-btn,
+    .manager-btn {
+        display: inline-block;
+        background-repeat: no-repeat;
+        background-position: center;
+        height: 20px;
+        width: 30px;
+        vertical-align: text-bottom;
+    }
+    .remove-btn {
+        background-image: url('#{$path-to-img}x.svg');
+        background-size: 12px;
+    }
+    .manager-btn {
+        background-image: url('#{$path-to-img}manager_inactive.svg');
+        background-size: 16px;
+        &.active {
+            background-image: url('#{$path-to-img}manager_active.svg');
+        }
+    }
+}
+.actions-button {
+    background-image: url('#{$path-to-actions-img}menu.svg');
+    background-size: 16px;
+    height: 20px;
+    width: 20px;
+    display: inline-block;
+    background-repeat: no-repeat;
+    position: absolute;
+    right: 0;
+    top: calc(50% - 10px);
+}
+.group-manager-row {
+    @include flex-row-centered;
+    padding: 0 10px;
+    div:not(:last-child) {
+        padding: 10px;
+    }
+    .group-name {
+        flex-grow: 1;
+        width: 150px;
+        max-width: 250px;
+        font-weight: 600;
+    }
+    .group-members {
+        width: calc(100% - 150px);
+    }
+    &:hover {
+        background-color: #f6f6f6;
+        color: $color-link-font;
+        cursor: pointer;
+    }
+    .actions-button {
+        position: relative;
+        top: 0;
+    }
+}
+.group-selector-with-input {
+    top: 354.625px;
+    left: 916.188px;
+    position: absolute;
+    z-index: 1000;
+}

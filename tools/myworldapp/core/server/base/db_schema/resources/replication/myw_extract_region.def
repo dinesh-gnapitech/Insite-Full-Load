@@ -1,0 +1,37 @@
+{
+   "name": "myw_extract_region",
+   "external_name": "Extract Region",
+   "title": "Extract Region: [name]", 
+   "track_changes": true, 
+   "editable": true, 
+   "fields": [{
+         "name": "id",
+         "type": "integer",
+         "generator": "sequence",
+         "external_name": "Id",
+         "key": true
+     },{
+         "name": "name",
+         "type": "string(50)",
+         "external_name": "Name",
+	 "mandatory": true
+     },{
+         "name": "the_geom",
+         "type": "polygon",
+         "external_name": "Boundary"
+     }
+   ],
+   "groups": [], 
+   "searches": [
+      {
+         "value": "{title}", 
+         "description": "{title}"
+      }
+   ],
+   "queries": [
+      {
+         "value": "extract region", 
+         "description": "Extract Region"
+      }
+   ]
+}

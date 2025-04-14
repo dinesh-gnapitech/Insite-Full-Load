@@ -1,0 +1,272 @@
+@import 'theme';
+@import 'base/_variables';
+@import 'menuView';
+@import 'valuesFieldEditor';
+@import 'searchInput';
+@import 'stylePicker';
+@import 'typePicker';
+@import 'tables';
+@import 'form';
+@import 'dragSorting';
+@import 'features';
+@import 'layers';
+@import 'draggableList';
+@import 'upload';
+@import 'roles';
+@import 'users';
+@import 'layerFeaturesForm';
+@import 'checkbox';
+@import 'bottomButtons';
+@import 'pickerColumn';
+@import 'keyValueViewer';
+@import 'noHeaderTable';
+@import '~jsoneditor/dist/jsoneditor.css';
+@import 'jsonEditor';
+@import 'settingsBasicForm';
+@import 'networkView';
+@import 'popover';
+
+$font-color: #444;
+body {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.85);
+    font-size: 14px;
+    font-family: 'Open Sans', Arial, sans-serif;
+    font-variant: tabular-nums;
+    line-height: 1.5715;
+    background-color: #fff;
+    font-feature-settings: tnum;
+}
+a {
+    color: #3ca22d;
+    text-decoration: none;
+    background-color: transparent;
+    outline: none;
+    cursor: pointer;
+}
+#root {
+    .container {
+        height: calc(100% - 83px);
+    }
+}
+.header {
+    background-color: #eee;
+    border-bottom: 1px solid #ddd;
+    height: 60px;
+
+    .breadcrumb {
+        margin: 15px 20px;
+        display: inline-block;
+        padding: 0;
+        li {
+            display: inline;
+            a {
+                font-size: 20px;
+                color: $font-color;
+                font-weight: 700;
+
+                &:hover {
+                    color: $primary-color;
+                }
+            }
+        }
+
+        & > li + li:before {
+            content: url('../images/breadcrumb-separator.png');
+            padding: 0 10px;
+            color: #999;
+            list-style: none outside none;
+        }
+    }
+}
+
+.container {
+    & > .ant-card:not(.ant-card-bordered) {
+        box-shadow: none;
+    }
+    .ant-card-head-wrapper,
+    .ant-tabs {
+        width: 100%;
+    }
+    .ant-tabs-nav {
+        margin: 0 0 0 0;
+    }
+}
+// So tab content that is inactive is hidden
+// Fixes the issue of the save/cancel buttons with fixed position within inactive tabs being clicked by mistake
+.ant-tabs-no-animation > .ant-tabs-content > .ant-tabs-tabpane-inactive {
+    display: none;
+}
+
+.footer {
+    background-color: #eee;
+    border-top: 1px solid #dcdada;
+    bottom: 0;
+    position: fixed;
+    width: calc(100% - 50px);
+    padding: 0px 25px;
+    font-size: 15px;
+
+    .left-section {
+        float: left;
+        width: 25%;
+    }
+
+    .center-section {
+        text-align: center;
+        float: left;
+        width: 50%;
+    }
+
+    .right-section {
+        float: right;
+        width: 25%;
+        text-align: right;
+    }
+
+    .iqgeo-small-logo {
+        background-image: url('../images/logos/IQGeo_Logo_main.svg');
+        background-repeat: no-repeat;
+        background-position: right 1.5px;
+        background-size: 54px 14.95px;
+        color: #333 !important;
+        padding-right: 59px;
+        width: 100px;
+    }
+}
+
+#logo {
+    float: right;
+    background-image: url('../images/logos/IQGeo_logo_header.svg');
+    background-repeat: no-repeat;
+    background-position: 50%;
+    background-size: 100%;
+    font-size: 0;
+    height: 100%;
+    margin: 0 10px 0 0;
+    width: 125px;
+}
+
+.text-center,
+.ant-table-thead > tr > th.text-center {
+    text-align: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.noStyleList {
+    margin: 0;
+    padding: 0;
+    > li {
+        list-style: none outside none;
+    }
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.page-actions-btns {
+    margin-top: 20px;
+    .ant-btn {
+        margin-right: 8px;
+        margin-bottom: 12px;
+    }
+}
+
+//Over-riding Antd styles --ENH: Do it via ContextProvider theme
+.ant-btn {
+    border-radius: $border-radius-primary;
+    &.ant-btn-primary {
+        background-color: $color-primary;
+    }
+    & > span,
+    & > i {
+        pointer-events: auto !important;
+    }
+}
+.ant-modal .ant-modal-content {
+    border-radius: $border-radius-primary;
+}
+//-----------------------------------------------------
+
+.list-title {
+    font-size: 20px;
+    font-weight: 600;
+}
+// Checkbox list
+.select-all {
+    padding-bottom: 8px;
+}
+.ant-checkbox-group .ant-checkbox-group-item {
+    display: block;
+    margin: 0 0 8px 0;
+}
+
+.card-with-tabs > .ant-card-body {
+    padding: 0;
+    .scroll-view {
+        padding: 0 24px;
+    }
+}
+/**------------Style Picker------------ */
+.style-form input[type='text'],
+.style-form select {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
+    border-radius: 4px;
+    padding: 4px 6px;
+    line-height: 20px;
+}
+
+.point-style-form {
+    //Only show explain text when there is an error
+    .ant-form-item-explain {
+        display: none;
+        &.ant-form-item-explain-error {
+            display: block;
+        }
+    }
+}
+
+.myw-form-item.ant-form-item {
+    margin-bottom: 0;
+    textarea.ant-input {
+        margin: 3px 0 4px 0;
+    }
+}
+tr:hover .linkToEdit > img {
+    display: inline-block;
+}
+
+.linkToEdit {
+    margin-left: 4px;
+    width: 16px;
+    height: 16px;
+    text-align: center;
+    display: inline-block;
+    vertical-align: text-top;
+
+    img {
+        border: 1px solid transparent;
+        vertical-align: top;
+        &:hover {
+            border-color: #ccc;
+            border-radius: 3px;
+            background-color: #eee;
+        }
+    }
+}
+
+.checkboxRow {
+    line-height: 28px;
+    &.user-form {
+        margin-top: 7px;
+    }
+}

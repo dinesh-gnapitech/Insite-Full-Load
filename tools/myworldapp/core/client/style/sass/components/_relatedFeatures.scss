@@ -1,0 +1,32 @@
+.related-features-plugin {
+    margin-bottom: 5px;
+    box-shadow: $box-shadow-main;
+}
+
+.feature-list {
+    margin-left: 12px;
+    margin-right: 12px;
+}
+
+.feature-list-item {
+    position: relative;
+    line-height: 24px;
+    vertical-align: middle;
+    cursor: pointer;
+    &:first-child {
+        // ENH: Fix layout problem and use top/bottom margin in .feature-list
+        padding-top: 8px;
+    }
+    &:last-child {
+        padding-bottom: 8px;
+    }
+}
+
+.feature-list-item-title {
+    color: $color-link-font-secondary;
+    font-weight: 600;
+}
+
+.feature-list-item-desc {
+    font-weight: 400;
+}

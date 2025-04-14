@@ -1,0 +1,250 @@
+################################################################################
+# myWorld misc utils
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+import os
+import re
+import string
+from collections import OrderedDict
+import pyramid.httpexceptions as exc
+from pyramid import threadlocal
+from beaker.cache import CacheManager
+
+
+def isHexadecimal(value):
+    """
+    Returns true if value is  a hexadecimal string
+    """
+
+    if not isinstance(value, str):
+        return False
+
+    return all(c in string.hexdigits for c in value)
+
+
+def replace_env_variables_in(string, **overrides):
+    """
+    Replace references to OS environment values in STRING by their values
+    """
+    # Variables are identified by {VAR_NAME}
+
+    # Find names of referened variables
+    var_names = re.findall("\{([^\}]+)\}", string)
+
+    # Replace by their values (where they are set)
+    for var_name in var_names:
+
+        var_value = overrides.get(var_name)
+
+        if var_value == None:
+            var_value = os.environ.get(var_name)
+
+        if var_value:
+            string = string.replace("{" + var_name + "}", var_value)
+
+    return string
+
+
+def filter_by_key(filter_proc, dict):
+    """
+    Returns a version of DICT filtered by FILTER_PROC logic
+    """
+    # FILTER_PROC is expected to have the signature fnc(k) returns bool
+    # returning true if item should be kept.
+
+    filtered_dict = OrderedDict()
+    for key, value in list(dict.items()):
+        if filter_proc(key):
+            filtered_dict[key] = value
+    return filtered_dict
+
+
+def sort_by_key(dict):
+    """
+    Returns a version of DICT with repeatable key order
+    """
+
+    sorted_dict = OrderedDict()
+
+    for key in sorted(dict.keys()):
+        sorted_dict[key] = dict[key]
+
+    return sorted_dict
+
+
+class NullContextManager:
+    """
+    No-op context manager, executes block without doing any additional processing
+    """
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *exc_info):
+        pass
+
+
+class FileIterator:
+    """
+    Iterator to stream a file in chunks
+    """
+
+    CHUNK_SIZE = 4096
+
+    def __init__(self, filename, bytes):
+        self.filename = filename
+        self.fileobj = open(self.filename, "rb")
+        self.fileobj.seek(bytes)
+
+    def __del__(self):
+        if self.fileobj:
+            self.fileobj.close()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        chunk = self.fileobj.read(self.CHUNK_SIZE)
+        if not chunk:
+            raise StopIteration
+        return chunk
+
+
+def serveDownload(request, filename):
+    if not os.path.exists(filename):
+        raise exc.HTTPNotFound()
+
+    fileSize = os.path.getsize(filename)
+    rangeOffset = 0
+    if request.range is not None:
+        cr = request.range.content_range(length=fileSize)
+        rangeOffset = cr.start
+        request.response.status_code = 206
+
+    name = os.path.basename(filename)
+    request.response.content_disposition = 'attachment; filename="' + name + '"'
+    request.response.content_type = "application/octet-stream"
+    request.response.app_iter = FileIterator(filename, rangeOffset)
+    request.response.content_length = fileSize - rangeOffset
+    request.response.last_modified = os.path.getmtime(filename)
+
+
+cacheManagers = {}
+
+
+def getCacheManager(key, expire=86400):
+    """
+    Obtains a shared cache manager if an appropriate external system (redis or memcached) is configured to be used by beaker
+    results are cached per key
+    """
+    if key in cacheManagers:
+        return cacheManagers[key]
+
+    registry = threadlocal.get_current_registry()
+    config = registry.settings or {}
+    beakerType = config.get("session.type", None)
+    url = config.get("session.url", None)
+    if beakerType in ["ext:memcached", "ext:redis"] and url is not None:
+        # external beaker is configured
+        cacheManager = CacheManager(type=beakerType, url=url, expire=expire)
+    else:
+        cacheManager = None
+
+    cacheManagers[key] = cacheManager
+    return cacheManager
+
+
+class SharedDict:
+    """
+    Basic funcationality of a Dict supported on a beaker Cache so it can be shared across processes
+    """
+
+    def __init__(self, sharedCache):
+        self.cache = sharedCache
+
+    def __setitem__(self, key, item):
+        self.cache.put(key, item)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __delitem__(self, key):
+        self.cache.remove_value(key)
+
+    def get(self, key):
+        try:
+            val = self.cache.get_value(key)
+            return val
+        except:
+            # print('SharedDict.get missing key:', self.cache.namespace.namespace, key)
+            return None
+
+
+def read_password_from_stdin():
+    """
+    Reads a password from stdin
+
+    Returns String password"""
+    import getpass, sys
+
+    if (
+        sys.stdin.isatty()
+    ):  # If we're connected to a tty-like device (such as a console), then use the user-friendly getpass.
+        return getpass.getpass()
+    else:
+        return sys.stdin.readline().strip()
+
+
+def search_json_structure(o, key, _type):
+    """search o (any type of JSON structure) for a dictionary with `key`, pointing to a value matching `type`, recursively.
+    `o`: object to search (may be any type allowed in JSON.)
+    `key`: a string.
+    `_type`: a type or tuple of types (same as isinstance's second argument).
+    returns: None if not found, or the value that the key pointed to."""
+
+    if isinstance(o, list):
+        for child in o:
+            result = search_json_structure(child, key, _type)
+            if result is not None:
+                return result
+    elif isinstance(o, dict):
+        for child_key, child_value in o.items():
+            if child_key == key and isinstance(child_value, _type):
+                return child_value
+            else:
+                result = search_json_structure(child_value, key, _type)
+                if result is not None:
+                    return result
+    else:
+        return None
+
+
+class PropertyDict(dict):
+    """A dictionary which allows setattr."""
+
+    pass
+
+
+_err_re = re.compile(r"^\([^\s].+?\) (.+?)$")
+
+
+def interpret_data_error(e):
+
+    lines = str(e).split("\n")
+
+    # Sometimes SQLA puts a line of context output at the top. Try to parse the first two lines
+    # for the inner exception.
+    first_line = lines[0].strip()
+    match = _err_re.search(first_line)
+
+    if not match:
+        second_line = lines[1].strip()
+        match = _err_re.search(second_line)
+
+    err_message = "bad parameter."
+
+    if match:
+        err_message = match.groups()[0]
+
+    return err_message

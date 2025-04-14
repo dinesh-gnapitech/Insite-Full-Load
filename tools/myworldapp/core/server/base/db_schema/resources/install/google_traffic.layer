@@ -1,0 +1,13 @@
+{
+   "name": "{:google_traffic_layer_name}", 
+   "category": "overlay", 
+   "code": "z", 
+   "description": "{:google_traffic_layer_desc}", 
+   "datasource": "google", 
+   "spec": {
+      "className": "TrafficLayer"
+   }, 
+   "thumbnail": "images/layers/layer-traffic.png", 
+   "min_scale": 10, 
+   "max_scale": 20
+}

@@ -1,0 +1,42 @@
+<script type="text/template" id="ad-hoc-query-template">
+    <div>
+        <div>
+            <span class='object-title'autofocus>Object :</span>
+            <div class="feature-type-select"></div>
+        </div>
+        <div class='query-title hidden'>{:query}:</div>
+        <div class='<%=queriesContainerClass%>'></div>
+    </div>
+</script>
+
+<script type="text/template" id="ad-hoc-geom-clause-template">
+    <label class="ui-label checkboxField"><input class="ui-checkbox" name="inWindow" type="checkbox">{:in_window_restriction}</label>
+    <label class="ui-label checkboxField"><input class="ui-checkbox" name="inSelection" type="checkbox">{:in_selection_restriction}</label>
+</script>
+
+<script type="text/template" id="ad-hoc-join-clause-row-template">
+    <div class="join-clause"></div>
+</script>
+
+<script type="text/template" id="ad-hoc-clause-template">
+    <div class='simple-clause-fields-container'>
+        <button class='ui-button remove-simple-clause'>-</button>
+        <span class='simple-clause-fields'>
+            <span class='query-field'></span>
+            <select class='query-operator hidden'></select>
+            <div class="query-value hidden"></div>
+        </span>
+        <button class='ui-button add-simple-clause'>+</button>
+    </div>
+</script>
+
+<script type="text/template" id="ad-hoc-query-row-template">
+    <div class='query-row'>
+        <div class='query-row-predicate-clause'>
+            <%if (showJoinOperator) {%>
+                <div class='query-predicate-operator'><select class='query-and-or'><%=predicateOperatorOptions%></select></div>
+            <%}%>
+            <%=rowContents%>
+        </div>
+    </div>
+</script>

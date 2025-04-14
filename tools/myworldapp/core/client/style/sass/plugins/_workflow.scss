@@ -1,0 +1,16 @@
+// Copyright: IQGeo Limited 2010-2019
+/*
+ * Delta owner plugin
+ */
+ .delta-owner-map-watermark {
+    position: absolute;
+    bottom: 3%;
+    font-size: 20px;
+    font-weight: 600;
+    z-index: 10000;
+    text-align: center;
+    background-color: #fff;
+    padding: 4px 8px;
+    border: 2px solid #aaa7a7;
+    border-radius: 3px;
+}

@@ -1,0 +1,22 @@
+{
+   "accessApplication":    { "description": "{:access_right_desc}"             },
+   "modifyLayerList":      { "description": "{:modify_layer_right_desc}"       },
+   "editGroups":           { "description": "{:edit_groups_right_desc}"        },
+   "editFeatures":         { "description": "{:edit_features_right_desc}"      },
+   "createSharedBookmark": { "description": "{:create_sbm_right_desc}"         },
+   "persistState":         { "description": "{:persist_state_right_desc}"      },
+
+   "managePickLists":      { "description": "{:manage_pick_lists_right_desc}"    , "config": true },
+   "manageDatasources":    { "description": "{:manage_datasources_right_desc}"   , "config": true },
+   "manageFeatures":       { "description": "{:manage_features_right_desc}"      , "config": true },
+   "manageFeatureConfig":  { "description": "{:manage_feature_config_right_desc}", "config": true },
+   "manageLayers":         { "description": "{:manage_layers_right_desc}"        , "config": true },
+   "manageNetworks":       { "description": "{:manage_networks_right_desc}"      , "config": true },
+   "manageApplications":   { "description": "{:manage_applications_right_desc}"  , "config": true },
+   "manageRoles":          { "description": "{:manage_roles_right_desc}"         , "config": true },
+   "manageUsers":          { "description": "{:manage_users_right_desc}"         , "config": true },
+   "manageSettings":       { "description": "{:manage_settings_right_desc}"      , "config": true },
+   "manageReplicas":       { "description": "{:manage_replicas_right_desc}"      , "config": true },
+   "manageNotifications":  { "description": "{:manage_notifications_right_desc}" , "config": true },
+   "manageUpload":         { "description": "{:manage_upload_right_desc}"        , "config": true }
+} 

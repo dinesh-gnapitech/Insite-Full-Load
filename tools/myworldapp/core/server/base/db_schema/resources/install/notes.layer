@@ -1,0 +1,20 @@
+{
+   "name": "{:notes_layer_name}", 
+   "category": "overlay", 
+   "code": "n", 
+   "description": "{:notes_layer_desc}", 
+   "datasource": "myworld", 
+   "spec": {
+      "rendering": "vector"
+   }, 
+   "thumbnail": "images/layers/layer-notes-small.png", 
+   "min_scale": 10, 
+   "max_scale": 20, 
+   "feature_types": [
+      {
+         "name": "note", 
+         "min_select": 16, 
+         "point_style": "images/markers/blue-marker.svg"
+      }
+   ]
+}

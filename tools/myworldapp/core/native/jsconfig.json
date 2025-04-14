@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "jsx": "react",
+        "checkJs": false,
+        "moduleResolution": "Node",
+        "paths": {
+            "myWorld-base": ["../client/myWorld-base"],
+            "myWorld-client": ["../client/myWorld-client"]
+        }
+    }
+}

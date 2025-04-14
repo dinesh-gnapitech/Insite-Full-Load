@@ -1,0 +1,6 @@
+# bash aliases to inhibit wildcard expansion by shell
+
+alias myw_db='set -f;myw_db';myw_db(){ command myw_db "$@";set +f;}
+alias myw_tilestore='set -f;myw_tilestore';myw_tilestore(){ command myw_tilestore "$@";set +f;}
+alias myw_product='set -f;myw_product';myw_product(){ command myw_product "$@";set +f;}
+alias myw_eds='set -f;myw_eds';myw_eds(){ command myw_eds "$@";set +f;}

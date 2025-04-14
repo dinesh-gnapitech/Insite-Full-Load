@@ -1,0 +1,549 @@
+################################################################################
+# Controller for handing requests to support vector rendering
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+# pylint: disable=no-member
+
+# General imports
+import json, urllib.request, urllib.error, urllib.parse
+from pyramid.view import view_config
+from pyramid.httpexceptions import HTTPNotImplemented, HTTPBadRequest
+import sqlalchemy.exc
+from geojson import FeatureCollection
+
+# Local Imports
+from myworldapp.core.server.base.geom.myw_polygon import MywPolygon
+from myworldapp.core.server.base.core.utils import PropertyDict
+from myworldapp.core.server.models.myw_layer import MywLayer
+import myworldapp.core.server.controllers.base.myw_globals as myw_globals
+from myworldapp.core.server.controllers.base.myw_controller import MywController
+from myworldapp.core.server.controllers.base.myw_feature_collection import MywFeatureCollection
+from myworldapp.core.server.controllers.base.myw_utils import filterFor
+from myworldapp.core.server.base.tilestore.globalmaptiles import GlobalMercator
+from myworldapp.core.server.base.db.myw_postgis_mvt_query import (
+    MywPostGISMVTQuery,
+    MywNoFeaturesError,
+)
+from myworldapp.core.server.base.core.myw_progress import MywSimpleProgressHandler
+
+
+class MywRenderController(MywController):
+    """
+    Controller for handing requests to support vector rendering
+    """
+
+    def __init__(self, request):
+        """
+        Initialize self
+        """
+
+        MywController.__init__(self, request)
+
+        self.db = myw_globals.db
+        self.dd_cache = {}
+
+        self.progress = MywSimpleProgressHandler(0, "Render:")
+
+    def _unpick_common_params(self):
+        """Process parameters common to several requests"""
+        layer_name = self.request.matchdict["layer_name"]
+
+        # Unpick layer name (which is encoded in JS using encodeURIComponent())
+        layer_name = urllib.parse.unquote(layer_name)
+
+        # Make sure that we have a valid request
+        self.current_user.assertAuthorized(self.request, layer_names=[layer_name])
+
+        layer_def = self.current_user.layerDefs()[layer_name]
+        self.tile_size = layer_def["spec"].get("tileSize", 512)
+
+        self.lang = self.get_param(self.request, "lang")
+        self.world = self.get_param(self.request, "world_name", default="geo")
+        feature_types = self.get_param(self.request, "feature_types")
+        self.required_fields = self.get_param(
+            self.request, "requiredFields", type="json", default={}
+        )
+
+        # Grab the layer render details from the cache:
+        unfiltered_layer_details = self.current_user.config_cache.layerRenderFeatureDetails(
+            layer_name
+        )
+        # If required, filter out the ones not requested:
+        self.featureTypeDetails = (
+            renderDetailsByFeatureType(unfiltered_layer_details, feature_types)
+            if feature_types
+            else unfiltered_layer_details
+        )
+
+        svars = self.get_param(self.request, "svars", type="json", default={})
+        delta = self.get_param(self.request, "delta")
+        schema = self.get_param(self.request, "schema", default="data")
+        self.db_view = self.db.view(delta, schema)
+
+        application = self.get_param(self.request, "application")
+        self.session_vars = self.current_user.sessionVars(application=application, **svars)
+
+    @view_config(route_name="myw_render_controller.get", request_method="GET", renderer="json")
+    def get(self):
+        """
+        Return all the features in LAYER_NAME within the supplied bounds and world.
+
+        Supports batching of results based on 'limit' parameter. At the end of each batch
+        offset information is returned that the client can use to get the next batch and so on.
+        """
+        self._unpick_common_params()
+        zoom = self.get_param(self.request, "zoom", type=int, mandatory=True)
+        boxes = self.get_param(self.request, "bbox", mandatory=True)
+        offset = self.get_param(self.request, "offset")
+        limit = self.get_param(self.request, "limit", type=int)
+
+        # If continuing a scan .. get start position
+        if offset:
+            parts = json.loads(offset)
+            bbox_offset = int(parts[0])
+            feature_offset = parts[1]
+            record_offset = int(parts[2])
+        else:
+            bbox_offset = None
+            feature_offset = None
+            record_offset = 0
+
+        # For each bounding box ...
+        features = []
+        total_cnt = 0
+
+        boxes = boxes.split(":")
+
+        for i_box in range(len(boxes)):
+
+            # Skip until we get to where we left off
+            if bbox_offset:
+                if i_box != bbox_offset:
+                    continue
+                bbox_offset = None
+
+            # Build polygon object for query
+            box = list(map(float, boxes[i_box].split(",")))
+            box_geom = MywPolygon.newBox(box[0], box[1], box[2], box[3])
+            box_wkb = box_geom.asWKBElement(4326)
+
+            # For each feature type ...
+            for feature_type, details in self.featureTypeDetails.items():
+                # Skip until we get to where we left off
+                if feature_offset:
+                    if feature_type != feature_offset:
+                        continue
+                    feature_offset = None
+
+                # Check for feature not visible at this zoom level
+                if not (details["min_vis"] <= zoom <= details["max_vis"]):
+                    continue
+
+                record_cnt = 0
+                for feature in self.getRenderFeatures(
+                    feature_type,
+                    details,
+                    box_wkb,
+                    record_offset,
+                    limit,
+                ):
+                    features.append(feature)
+
+                    total_cnt += 1
+                    record_cnt += 1
+
+                    if limit and total_cnt >= limit:
+                        break
+
+                if limit and total_cnt >= limit:
+                    break
+
+                # Offset only applies to first feature type in list
+                record_offset = 0
+
+            if limit and total_cnt >= limit:
+                break
+
+        # If we've hit the limit then set offset information for restart the query on next call
+        if limit and total_cnt >= limit:
+            next_offset_parts = [i_box, feature_type, record_cnt + record_offset]
+
+            offset = json.dumps(
+                next_offset_parts, separators=(",", ":")
+            )  # Compact format, as per JavaScript (keeps tests clean)
+        else:
+            offset = None
+
+        features = MywFeatureCollection(features)
+
+        if offset:
+            return {"featureCollection": features, "offset": offset}
+        else:
+            return {"featureCollection": features}
+
+    @view_config(
+        route_name="myw_render_controller.json_tile", request_method="GET", renderer="json"
+    )
+    def json_tile(self):
+        """Tile in geojson"""
+
+        self._unpick_common_params()
+        self.world = self.get_param(self.request, "world_name", default="geo")
+
+        x = int(self.request.matchdict["x"])
+        y = int(self.request.matchdict["y"])
+        zoom = int(self.request.matchdict["z"])
+        # configuration zoom levels are based on 256pixel tiles, so we need to convert the zoom in the request to 256 tile based zoom level
+        view_zoom = zoom + self.tile_size // 256 - 1
+
+        # Build polygon object for query
+        (minLon, minLat, maxLon, maxLat) = tile_coords_wgs84(x, y, zoom, self.tile_size)
+        box_geom = MywPolygon.newBox(minLon, minLat, maxLon, maxLat)
+        box_wkb = box_geom.asWKBElement(4326)
+
+        all_features = []
+        zoomRange = self.featureTypeDetails.zoomRange(view_zoom)
+        # For each feature type ...
+        for feature_type, details in self.featureTypeDetails.items():
+            # Check for feature not visible at this zoom level
+            if not featureRequiredAtZoom(details, zoomRange):
+                continue
+
+            features = self.getRenderFeatures(feature_type, details, box_wkb)
+            all_features.extend(features)
+
+        feature_col = FeatureCollection(all_features)
+        return feature_col
+
+    def getRenderFeatures(
+        self,
+        feature_type,
+        details,
+        box_wkb,
+        rec_offset=0,
+        limit=None,
+    ):
+        """
+        Yields features of the given type for the given bbox
+        Uses the feature layer items from the layer in the request
+        """
+        field_names = details["field_names"]
+        # Check for geometryless feature
+        if not field_names:
+            return
+
+        # Build table scan query
+        table = self.db_view.table(feature_type)
+        filter_builder = lambda model: filterFor(
+            self.current_user,
+            model,
+            feature_type,
+            field_names,
+            self.world,
+            box_wkb,
+            details["filter"],
+            self.session_vars,
+        )
+        query = table.filterWith(filter_builder)
+
+        # calculate fields that need to be included in response
+        add_fields = self.required_fields.get(feature_type, [])
+        feature_required_fields = (
+            details["required_fields"] + add_fields + [table.descriptor.key_field_name]
+        )
+
+        # Get feature records
+        for feature in query.recs(offset=rec_offset, limit=limit):
+            feature = feature.asGeojsonFeature(
+                self.dd_cache,
+                include_display_values=False,
+                include_lobs=False,
+                lang=self.lang,
+                fields=feature_required_fields,
+            )
+            yield feature
+
+    @view_config(route_name="myw_render_controller.mvt_tile_by_layer", request_method="GET")
+    def mvt_tile_by_layer(self):
+        """Tile in Mapbox Vector Tile (mvt)"""
+
+        self._unpick_common_params()
+        self.world = self.get_param(self.request, "world_name", default="geo")
+
+        x = int(self.request.matchdict["x"])
+        y = int(self.request.matchdict["y"])
+        zoom = int(self.request.matchdict["z"])
+        # configuration zoom levels are based on 256pixel tiles, so we need to convert the zoom in the request to 256 tile based zoom level
+        view_zoom = zoom + self.tile_size // 256 - 1
+
+        features_to_query = {}
+        zoomRange = self.featureTypeDetails.zoomRange(view_zoom)
+        # For each feature type ...
+        for feature_type, details in self.featureTypeDetails.items():
+            # Check for feature not visible at this zoom level
+            if not featureRequiredAtZoom(details, zoomRange):
+                continue
+
+            features_to_query[feature_type] = details
+
+        mvt_bytes = self.getMVT(
+            features_to_query,
+            (x, y, zoom),
+        )
+
+        self.request.response.content_type = "application/octet-stream"
+        self.request.response.content_length = len(mvt_bytes)
+        self.request.response.body = mvt_bytes
+
+        return self.request.response
+
+    @view_config(route_name="myw_render_controller.mvt_tile_by_params", request_method="POST")
+    def mvt_tile_by_params(self):
+        """Fully-parameterised MVT request
+        POST JSON data packet should be of the following schema:
+        {
+            // required:
+            "layer_names": [... one or more],
+            "zoom": 15,
+            "tile": [x, y]
+            // "bbox": [...] possible future optional replacement for "tile" (method could support both.)
+            // optional:
+            "world_name": "geo",
+            "required_fields": [...],
+            "svars": {},
+            "delta": "",
+        }
+        Supports:
+        * multiple layers in one tile,
+        * arbitrarily large session vars or required fields.
+        Could be ENHanced to support:
+        * arbitrary bounding boxes (not aligned to web mercator XY/Z, requires changes in
+          myw_postgis_mvt_query too),
+        * tile scale coords (MVT EXTENT param).
+        """
+        # We need to unpick the params ourselves here, since the request isn't built like the
+        # others.
+        props = json.loads(self.request.body)
+
+        max_tile_zoom = 17  # needs to match value in client's MyWorldDatasource.getVectorSharedSource. ENH: pass in request
+        tile_size = 512  # needs to match value in client's MyWorldDatasource.getVectorSharedSource. ENH: pass in request
+
+        # Compulsory params first:
+        try:
+
+            layer_names = props["layer_names"]
+
+            if isinstance(layer_names, str):
+                layer_names = [layer_names]
+
+            if not layer_names:
+                raise HTTPBadRequest()
+
+            # Make sure that we are authorized for the request, before returning 400 for other
+            # missing params.
+            self.current_user.assertAuthorized(
+                self.request, layer_names=layer_names, ignore_csrf=True
+            )
+
+            zoom = props["zoom"]
+
+            tile = props["tile"]
+        except KeyError:
+            # TODO provide better error here?
+            raise HTTPBadRequest()
+
+        self.world = props.get("world_name", "geo")
+        self.required_fields = props.get("required_fields", {})
+
+        delta = props.get("delta", "")
+        schema = props.get("schema", None)
+        self.db_view = self.db.view(delta, schema)
+
+        application = props.get("application", None)
+        svars = props.get("svars", {})
+        self.session_vars = self.current_user.sessionVars(application=application, **svars)
+
+        feature_types = props.get("feature_types", [])
+        features_to_query = {}
+
+        # configuration zoom levels are based on 256pixel tiles, so we need to convert the zoom in the request to 256 tile based zoom level
+        view_zoom = zoom + tile_size // 256 - 1
+        max_tile_view_zoom = max_tile_zoom + tile_size // 256 - 1
+
+        # Grab the layer render details from the cache:
+        for layer_name in layer_names:
+            unfiltered_layer_features = self.current_user.config_cache.layerRenderFeatureDetails(
+                layer_name
+            )
+
+            # If required, filter out the ones not requested:
+            layer_features = (
+                renderDetailsByFeatureType(unfiltered_layer_features, feature_types)
+                if feature_types
+                else unfiltered_layer_features
+            )
+
+            # Next, filter for features visible at the requested zoom:
+            # Note that we pass in the max_tile_view_zoom to zoomRange because it's a global setting, not layer specific.
+            zoom_range = layer_features.zoomRange(view_zoom, max_tile_view_zoom)
+
+            layer_features_for_zoom = {
+                feature: details
+                for feature, details in layer_features.items()
+                if featureRequiredAtZoom(details, zoom_range)
+            }
+
+            # Finally, merge these definitions in with the features from other layers:
+            features_to_query = combineRenderDetails(features_to_query, layer_features_for_zoom)
+
+        mvt_bytes = self.getMVT(
+            features_to_query,
+            tile[:2] + [zoom],
+        )
+
+        self.request.response.content_type = "application/octet-stream"
+        self.request.response.content_length = len(mvt_bytes)
+        self.request.response.body = mvt_bytes
+
+        return self.request.response
+
+    def getMVT(self, feature_types_details, tile_coords):
+        # ENH: also build a Spatialite MVT query, if needed.
+        try:
+            query = MywPostGISMVTQuery(
+                self.db.db_driver, self.current_user, self.session_vars, tile_coords, self.world
+            )
+        except ValueError:
+            self.progress(
+                "error",
+                f"Invalid parameter in tile coords {tile_coords}",
+            )
+            raise HTTPBadRequest()
+
+        for feature_type, details in feature_types_details.items():
+            table = self.db_view.table(feature_type)
+            extra_fields = self.required_fields.get(feature_type, [])
+            query.add_geometries(
+                (table, geom_field, details["required_fields"] + extra_fields, details["filter"])
+                for geom_field in details["field_names"]
+            )
+
+        try:
+            sql = query.generate_sql()
+            result_proxy = self.db.executeSQL(sql)
+            # This query should give us one big tile.
+            memory = result_proxy.fetchall()[0][0]
+            return memory.tobytes()
+        except MywNoFeaturesError:
+            return b""
+        except sqlalchemy.exc.ProgrammingError as e:
+            self.progress(
+                "error",
+                f"SQL Error, possible PostGIS version incompatibility (v3.1 or greater required). Detail: {e}",
+            )
+            raise HTTPNotImplemented()
+
+
+def renderDetailsByFeatureType(feature_item_defs, feature_types):
+    """
+    Gather the details from layer_feature_item by feature type
+    """
+    requested_feature_types = feature_types.split(",")
+
+    # While deleting keys from the dict might be simpler here, the defs come from the cache and we
+    # can't mutate that object.
+    defs = PropertyDict()
+    if hasattr(feature_item_defs, "zoomRange"):
+        defs.zoomRange = feature_item_defs.zoomRange
+
+    for feature_type, v in feature_item_defs.items():
+        if feature_type in requested_feature_types:
+            defs[feature_type] = v
+
+    return defs
+
+
+def mergeFilters(a, b):
+    """We need to merge filters so that all elements matched by a OR b are returned by the query.
+    Note that a and b can be:
+    * None => TRUE filter.
+    * str => one, named filter.
+    * (str, str) => two named filters already OR'd together.
+
+    Returns a tuple, which can be used in dict keys since it's immutable."""
+
+    # ENH: use Pattern Matching to re-write this more neatly in Python 3.10 (see
+    # https://docs.python.org/3.10/whatsnew/3.10.html#pep-634-structural-pattern-matching )
+
+    # Shortcut if we need to match all elements:
+    if a is None or b is None:
+        # { TRUE OR x, y OR TRUE } => TRUE.
+        return None
+
+    filter_clauses = []
+    if isinstance(a, str):
+        filter_clauses.append(a)
+    else:
+        filter_clauses.extend(a)
+    if isinstance(b, str):
+        filter_clauses.append(b)
+    else:
+        filter_clauses.extend(b)
+    # de-duplicate the collection, and ensure it is a tuple.
+    result = set(filter_clauses)
+
+    # If there is only one filter, we return it as a string.
+    if len(result) == 1:
+        return result.pop()
+    return tuple(result)
+
+
+def mergeRenderDetails(a, b):
+    """Merge two render details dictionaries"""
+
+    # The render details are almost entirely the union of the two previous details dictionaries.
+    # Filters are different though, since they need to be OR'd, see mergeFilters for details.
+    return {
+        "field_names": list(set(a["field_names"] + b["field_names"])),
+        "required_fields": list(set(a["required_fields"] + b["required_fields"])),
+        "min_vis": min(a["min_vis"], b["min_vis"]),
+        "max_vis": max(a["max_vis"], b["max_vis"]),
+        "filter": mergeFilters(a["filter"], b["filter"]),
+    }
+
+
+def combineRenderDetails(existing_details, additional_details):
+    """
+    Merge additional_details into existing_details. Feature details here will only need to be
+    merged if two layers being rendered together both contain the same feature type. We use
+    mergeRenderDetails if they do. This method mutates existing_details, and returns it.
+    """
+    existing_details.update(
+        {
+            feature_type: mergeRenderDetails(
+                existing_details[feature_type], additional_details[feature_type]
+            )
+            if feature_type in existing_details
+            else details
+            for feature_type, details in additional_details.items()
+        }
+    )
+
+    return existing_details
+
+
+def featureRequiredAtZoom(feature_details, zoomRange):
+    """Returns Bool of whether to include the feature at the requested zoom level range."""
+    requested_min, requested_max = zoomRange
+    return not (
+        requested_max < feature_details["min_vis"] or requested_min > feature_details["max_vis"]
+    )
+
+
+def tile_coords_wgs84(x, y, z, tile_size=256):
+    """returns the bounding box in long/lat coordinates of a tile"""
+    gm = GlobalMercator(tile_size)
+    y = pow(2, z) - 1 - y
+    (minLat, minLon, maxLat, maxLon) = gm.TileLatLonBounds(x, y, z)  # Returns lat1,lon1,lat2,lon2
+    return [minLon, minLat, maxLon, maxLat]

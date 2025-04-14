@@ -1,0 +1,348 @@
+###############################################################################
+# Engine for authenticating via OpenID Connect
+###############################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+import base64, json, os
+import traceback
+from requests.exceptions import ConnectionError
+from oidcrp.rp_handler import RPHandler
+from oidcrp.exception import OidcServiceError
+
+from .myw_auth_engine import MywAuthEngine
+from .myw_oidc_state_cache import MywOidcStateCache
+
+from myworldapp.core.server.base.core.utils import search_json_structure
+from myworldapp.core.server.base.core.myw_error import MywError
+
+# Declare engine class (for dynamic loading - see myw_authenticator)
+__auth_engine__ = "MywOidcAuthEngine"
+
+
+class MywOidcAuthEngine(MywAuthEngine):
+    """
+    Engine for authenticating via OpenID Connect
+
+    Forwards the user to the OpenID Provider (OP), where they authenticate.
+    Catches the redirected response from OP, and processes it to retrieve
+    user identity and role information.
+    """
+
+    # Class constants
+    auth_fields = []
+    auth_controls = [
+        {
+            "id": "oidc-sign-in-btn",
+            "type": "submit",
+            "label": "oidc_sign_in",
+            "action": "auth/sso/myw_oidc_auth_engine",
+        }
+    ]
+
+    def __init__(self, config):
+        """
+        Init slots of self
+
+        CONFIG is a dict of configuration settings (from .ini file)"""
+
+        super(MywOidcAuthEngine, self).__init__(config)
+
+        default_roles_claim = "roles"
+        default_user_name_claim = "preferred_username"
+
+        options = config["myw.auth.oidc.options"].copy()
+        auth_options = config["myw.auth.options"].copy()
+
+        self.disable_reauth_check = auth_options.get("disable_reauth_check", False)
+
+        # Extract .ini options if set.
+        if options is not None:
+            if "issuer" in options:
+                self.issuer = options.pop("issuer")
+            if "config_dir" in options:
+                self.config_dir = options.pop("config_dir")
+            self.roles_claim = options.pop("roles_claim", default_roles_claim)
+            self.user_name_claim = options.pop("user_name_claim", default_user_name_claim)
+            self.logout_from_provider = options.pop("logout_from_provider", False)
+        else:
+            self.roles_claim = default_roles_claim
+            self.user_name_claim = default_user_name_claim
+            self.logout_from_provider = False
+
+        if not hasattr(self, "issuer"):
+            self.progress("error", "Missing issuer option in configuration")
+            self.issuer = None
+
+        if not hasattr(self, "config_dir"):
+            self.progress("error", "Missing config_dir option in configuration")
+            return
+
+        # load in configuration and create provider:
+        try:
+            self.rp_handler = self._create_rp_handler(os.path.join(self.config_dir, "conf.json"))
+        except ConnectionError as cond:  # ENH: cover more possible errors from the config.
+            raise MywError(f"MywOidcAuthEngine: Unable to load OIDC config, {str(cond)}")
+
+    def authenticate(self, request):
+        """
+        Get user name and role names for REQUEST (if any)
+
+        Extracts OIDC assertion details from REQUEST validates them with Identity provider
+        REQUEST must be a OIDC Assertion request
+
+        Returns dict with keys:
+         'user_name'       Name of user
+         'roles'           Names of SAML roles"""
+        # this request usually originates from a redirection after the user has authenticated with the identity provider
+        # could also originate from the Anywhere (after the assertion details have been passed to the app via authenticate_anywhere)
+
+        # Enh: Find method to verify a valid this is a OIDC request
+
+        if not self.issuer or not self.rp_handler:
+            # not propertly configured
+            self.progress("error", "MywOidcAuthEngine.authenticate not properly configured")
+            self.progress("error", "issuer", self.issuer)
+            self.progress("error", "rp_handler", repr(self.rp_handler))
+            return None
+
+        self.progress(3, "authenticate via OIDC. Session:", request.session.id)
+        try:
+            oidc_auth_data = {
+                "state": request.params.get("state"),
+                "session_state": request.params.get("session_state"),
+                "code": request.params.get("code", None),
+            }
+        except KeyError as cond:
+            self.progress("error", "MywOidcAuthEngine.authenticate failure", cond)
+            self.progress("error", "cond.args", repr(cond.args))
+            self.progress("error", "request.params", repr(request.params))
+            return None
+
+        try:
+            session_info = self.rp_handler.get_session_information(oidc_auth_data["state"])
+        except Exception as cond:
+            print(
+                "MywOidcAuthEngine.authenticate failed to get IdP session information",
+                cond,
+                request.params,
+            )
+            return None
+
+        try:
+            # get user details from authorization token
+            # change to use request.params directly
+            oidc_final_data = self.rp_handler.finalize(session_info["iss"], request.params)
+        except Exception as cond:
+            self.progress(
+                "error",
+                "MywOidcAuthEngine.authenticate failed to get user details from authorization token",
+            )
+            self.progress("error", "error", repr(cond))
+            self.progress("error", "cond.args", repr(cond.args))
+            self.progress("error", "session_info", dict(session_info))
+            self.progress("error", "request.params", repr(request.params))
+
+            return None
+
+        if "error" in oidc_final_data:
+            self.progress("error", "response from oidcrp was an error: ", repr(oidc_final_data))
+            return None
+
+        # ENH: get and use access token
+        try:
+            user_info = oidc_final_data["userinfo"].to_dict()
+        except AttributeError as cond:
+            user_info = oidc_final_data["userinfo"]
+        except Exception as cond:
+            self.progress("error", "MywOidcAuthEngine.authenticate failed to get userinfo")
+            self.progress("error", "error", repr(cond))
+            self.progress("error", "oidc_final_data", dict(oidc_final_data))
+            self.progress("error", "userinfo", repr(oidc_final_data["userinfo"]))
+            return None
+
+        self.progress(3, "user_info", repr(user_info))
+        # comes from the OpenID Connect specification:
+        try:
+            name = user_info[self.user_name_claim]
+        except KeyError as cond:
+            self.progress("error", f"{self.user_name_claim} missing from user_info")
+            return None
+
+        # roles are more tricky, as they are not specificed. We search the JSON for a key named "roles" pointing to a list.
+        roles = search_json_structure(user_info, self.roles_claim, list)
+        if roles is None:
+            # roles may also be specified here:
+            id_token = oidc_final_data["id_token"].to_dict()
+            roles = search_json_structure(id_token, self.roles_claim, list)
+            if roles is None:
+                roles = []
+
+        return {
+            "user_name": name,
+            "roles": roles,
+            "auth_engine_metadata": {"state": oidc_final_data["state"]},
+        }
+
+    def reAuthenticate(self, auth_data, request):
+        """
+        Check if the auth data is still valid, and if not refresh it.
+        returns auth_data
+        """
+
+        # Some oidc workflows do not support a refresh token.
+        if self.disable_reauth_check:
+            return auth_data
+
+        self.progress(3, "reAuthenticate via OIDC. Session:", request.session.id)
+        try:
+            state = auth_data["auth_engine_metadata"]["state"]
+            self.rp_handler.refresh_access_token(state)
+            if self.rp_handler.has_active_authentication(state):
+                # ENH: double check that roles have not changed. If they have, we invalidate the
+                # session.
+                return auth_data
+
+            # Send the user back to our login page, which can login via OIDC from the start.
+            self.progress(3, "oidc reauth refused, no", request.session.id)
+            return None
+        except Exception as cond:
+            # refresh_access_token can throw anything, just log it.
+            self.progress("error", "oidc reauth failed", request.session.id)
+            self.progress("error", "error", repr(cond))
+            self.progress("error", "request", repr(request.params))
+            return None
+
+    def singleSignOn(self, request):
+        """
+        Initiate an authorization request to IdP
+        Redirects browser to configured single sign on address/IdP
+        """
+
+        self.progress(3, "initiate SSO via OIDC. Session:", request.session.id)
+        try:
+            origin_client = request.params.get("origin_client")
+            redirect_to = request.params.get("redirect_to")
+            params = request.params.get("params")
+            # Gather data we need to initialise Authorization request
+            config = self.rp_handler.client_configs[self.issuer]
+            redirect_uri = config.get("redirect_uris")[0]
+            req_args = {
+                "redirect_uri": self._get_redirect_uri(
+                    redirect_uri, origin_client, redirect_to, params
+                )
+            }
+            client = self.rp_handler.issuer2rp[config.get("issuer")]
+
+            # Prepare authorization request
+            init_data = self.rp_handler.init_authorization(client, req_args=req_args)
+
+            return init_data["url"]
+        except OidcServiceError:
+            print(
+                "MywOidcAuthEngine.singleSignOn could not resolve redirect URL. Please check issuer."
+            )
+            raise
+
+    def _get_redirect_uri(
+        self, base_redirect_uri, origin_client="connected", redirect_to="index", params=""
+    ):
+        """
+        Modify the redirect_uri according to whether we are returning to Connected or Anywhere
+        """
+
+        if origin_client == "anywhere":
+            return f"{base_redirect_uri}/anywhere/myw_oidc_auth_engine"
+        return f"{base_redirect_uri}?redirect_to={redirect_to}&params={params}"
+
+    def authenticate_anywhere(self, request):
+        """
+        Handle redirect from OP after user has authenticated
+        Redirects to custom url protocol that will open the Anywhere app
+        """
+        # ENH: use a process like https://auth0.com/docs/flows/authorization-code-flow-with-proof-key-for-code-exchange-pkce
+
+        self.progress(3, "relay oidc_auth_data to ANYWHERE. Session:", request.session.id)
+
+        try:
+            oidc_auth_data = {
+                "state": request.params.get("state"),
+                "session_state": request.params.get("session_state"),
+            }
+
+            # These optional params should only be included if the were present in the request from OP
+            code = request.params.get("code", None)
+            id_token = request.params.get("id_token", None)
+            if code:
+                oidc_auth_data["code"] = code
+            if id_token:
+                oidc_auth_data["id_token"] = id_token
+
+        except KeyError as cond:
+            self.progress("error", "MywOidcAuthEngine.authenticate_anywhere invalid request", cond)
+            self.progress("error", "cond.args", repr(cond.args))
+            self.progress("error", "request.params", repr(request.params))
+            return None
+
+        data = json.dumps(oidc_auth_data)
+        payload = base64.urlsafe_b64encode(data.encode("utf-8")).decode("utf-8")
+
+        return "myworld://sso?auth_data={0}".format(payload)
+
+    def logout(self, metadata):
+        """
+        logout from the identity provider
+        """
+        if not self.logout_from_provider:
+            return
+
+        try:
+            state = metadata["state"]
+            info = self.rp_handler.logout(state)
+            self.progress(7, "logout. redirecting to:", info["url"])
+            return info["url"]
+        except Exception as cond:
+            self.progress("error", "logout failed:", cond, traceback=traceback)
+
+    def _create_rp_handler(self, conf_file):
+        from oidcrp.configure import Configuration
+        from oidcrp.configure import RPConfiguration
+        from oidcmsg.configure import create_from_config_file
+        from cryptojwt import KeyJar
+        from cryptojwt.key_jar import init_key_jar
+        import re
+
+        _config = create_from_config_file(
+            Configuration,
+            entity_conf=[{"class": RPConfiguration, "attr": "rp"}],
+            filename=conf_file,
+        )
+
+        rp_config: RPConfiguration = _config.rp  # pylint: disable=no-member
+
+        if rp_config.key_conf:
+            keyjar = init_key_jar(**rp_config.key_conf)
+            path = rp_config.key_conf["public_path"]
+            path = re.sub("^(.)/", "", path)
+        else:
+            keyjar = KeyJar()
+            path = ""
+        keyjar.httpc_params = rp_config.httpc_params
+
+        self.progress(9, "constructing handler with config: ", repr(rp_config.__dict__))
+        rp_handler = RPHandler(
+            rp_config.base_url,
+            rp_config.clients,
+            services=rp_config.services,
+            hash_seed=rp_config.hash_seed,
+            keyjar=keyjar,
+            jwks_path=path,
+            httpc_params=rp_config.httpc_params,
+        )
+
+        for client in rp_config.clients.keys():  # setup each client_config
+            rp = rp_handler.client_setup(
+                client
+            )  # this, together with call to init_authorization replaces begin() call
+            rp.client_get("service_context").state = MywOidcStateCache()
+
+        return rp_handler

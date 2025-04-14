@@ -1,0 +1,688 @@
+################################################################################
+# Generic controller for feature objects
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+# pylint: disable=no-member
+
+import json
+from geojson import Feature, GeoJSON
+from geojson import loads as geojson_loads
+from pyramid.view import view_config
+import pyramid.httpexceptions as exc
+import sqlalchemy, sqlalchemy.exc
+
+from myworldapp.core.server.base.core.myw_error import MywError
+from myworldapp.core.server.base.db.globals import Session
+from myworldapp.core.server.base.db.myw_db_predicate import MywDbPredicate
+from myworldapp.core.server.base.core.myw_progress import MywSimpleProgressHandler
+
+from myworldapp.core.server.controllers.base.myw_controller import MywController
+from myworldapp.core.server.controllers.base.myw_utils import featuresFromRecs
+from myworldapp.core.server.controllers.base.myw_feature_collection import MywFeatureCollection
+from .myw_feature_request import MywFeatureRequest
+
+import myworldapp.core.server.controllers.base.myw_globals as myw_globals
+
+
+class MywFeatureController(MywController):
+    """
+    Controller for accessing data from myWorld feature tables
+    """
+
+    def __init__(self, request):
+        """
+        Initialize self
+        """
+
+        MywController.__init__(self, request)
+
+        self.db = myw_globals.db
+        self.progress = MywSimpleProgressHandler(1, "FEATURES:")
+
+    # ==============================================================================
+    #                                     QUERYING
+    # ==============================================================================
+
+    @view_config(route_name="myw_feature_controller.no_id", request_method="GET", renderer="json")
+    @view_config(
+        route_name="myw_feature_controller.query_post", request_method="POST", renderer="json"
+    )
+    def query(self):
+        """
+        Return all the features of type FEATURE_TYPE matching query
+        """
+        feature_type = self.request.matchdict["feature_type"]
+
+        self.current_user.assertAuthorized(
+            self.request,
+            feature_type=feature_type,
+            application=self.request.params.get("application"),
+            ignore_csrf=True,
+        )
+
+        # Unpick parameters
+        application = self.get_param(self.request, "application")
+        aspects = self._get_aspect_params(self.request)
+        delta = self.get_param(self.request, "delta")
+        limit = self.get_param(self.request, "limit", int)
+        offset = self.get_param(self.request, "offset", int)
+        include_total = self.get_param(self.request, "include_total", bool, default=False)
+
+        # Build full query
+        table = self.db.view(delta).table(feature_type)
+        req = self.parseRequest(application, self.request, table)
+        svars = self.getSessionVars(application, self.request)
+
+        # Get limit parameter
+        # Note: We ask for 'limit+1' so that we can tell if there are more to get
+        query_limit = None
+        if limit:
+            query_limit = limit + 1
+
+        # Get (next chunk of) result
+        recs = table.filter(req.predicate(), svars).offset(offset).limit(query_limit)
+
+        for field_name, ascending in req.order_by_info():
+            recs = recs.orderBy(field_name, ascending=ascending)
+
+        recs = recs.all()
+
+        # Check for incomplete result
+        n_recs = len(recs)
+        more_to_get = False
+        if n_recs == query_limit:
+            recs.pop()
+            n_recs -= 1
+            more_to_get = True
+
+        # Get full count (if requested)
+        total_n_recs = None
+        if (not more_to_get) and (
+            (n_recs > 0) or (not offset)
+        ):  # In last chunk ... so can compute total size
+            total_n_recs = n_recs + (offset or 0)
+        elif include_total:
+            total_n_recs = table.filter(req.predicate(), svars).count()
+
+        # Build result (as feature collection)
+        features = featuresFromRecs(recs, **aspects)
+
+        return MywFeatureCollection(features, limit, offset, total_n_recs)
+
+    @view_config(route_name="myw_feature_controller.with_id", request_method="GET", renderer="json")
+    def get(self):
+        """
+        Return feature ID as GeoJSON
+        """
+        feature_type = self.request.matchdict["feature_type"]
+        id = self.request.matchdict["id"]
+
+        self.current_user.assertAuthorized(
+            self.request,
+            feature_type=feature_type,
+            application=self.request.params.get("application"),
+        )
+
+        # Unpick params
+        application = self.get_param(self.request, "application")
+        aspects = self._get_aspect_params(self.request)
+        delta = self.get_param(self.request, "delta")
+
+        # Get record
+        table = self.db.view(delta).table(feature_type)
+        req = self.parseRequest(application, self.request, table)
+        svars = self.getSessionVars(application, self.request)
+        try:
+            rec = table.filter(req.predicate(), svars).get(id)
+        except sqlalchemy.exc.DataError:
+            rec = None
+
+        if not rec:
+            raise exc.HTTPNotFound()
+
+        return rec.asGeojsonFeature(**aspects)
+
+    @view_config(
+        route_name="myw_feature_controller.relationship", request_method="GET", renderer="json"
+    )
+    def relationship(self):
+        """
+        Return the feature referenced by FIELD_NAME of feature ID
+        """
+        feature_type = self.request.matchdict["feature_type"]
+        id = self.request.matchdict["id"]
+        field_name = self.request.matchdict["field_name"]
+
+        self.current_user.assertAuthorized(
+            self.request,
+            feature_type=feature_type,
+            application=self.request.params.get("application"),
+        )
+
+        # Unpick params
+        application = self.get_param(self.request, "application")
+        aspects = self._get_aspect_params(self.request)
+        delta = self.get_param(self.request, "delta")
+
+        # Get record
+        table = self.db.view(delta).table(feature_type)
+        req = self.parseRequest(application, self.request, table)
+        svars = self.getSessionVars(application, self.request)
+
+        rec = table.filter(req.predicate(), svars).get(id)
+
+        if not rec:
+            raise exc.HTTPNotFound()
+
+        # Get auth filters
+        field = rec._field(field_name)
+        if hasattr(field, "_scanInfo"):
+            # calculated reference field
+            # get auth filters to include with request
+            auth_filters = {}
+            for feature_type, field_name in field._scanInfo():
+                feature_def = self.current_user.featureTypeDef(application, "myworld", feature_type)
+                table = self.db.view(delta).table(feature_type)
+
+                if feature_def is None:
+                    pred = MywDbPredicate.false
+                elif feature_def["unfiltered"]:
+                    pred = MywDbPredicate.true
+                else:
+                    # Build union of all accessible filtered layers
+                    # ENH: Modify config_cache to store merged filter in feature_def
+                    pred = MywDbPredicate.false
+                    for name, auth_pred in list(feature_def["filter_preds"].items()):
+                        pred = pred | auth_pred
+
+                auth_filters[feature_type] = pred.sqaFilter(table.model.__table__, variables=svars)
+
+            # Get list of referenced records available to this user via the auth filters
+            recs = field.recs(skip_bad_refs=True, additional_filters=auth_filters)
+        else:
+            recs = field.recs(skip_bad_refs=True)
+
+        # Build feature collection
+        referenced_features = featuresFromRecs(recs, **aspects)
+
+        return MywFeatureCollection(referenced_features)
+
+    @view_config(route_name="myw_feature_controller.count", request_method="POST")
+    def count(self):
+        """
+        Returns number of records in table
+        """
+        # ENH: Add authorisation (requires separate service for feature config page)
+        # ENH: Change routing and make this a GET
+        feature_type = self.request.matchdict["feature_type"]
+
+        self.request.response.content_type = "text/plain"
+
+        # Unpick params
+        application = self.get_param(self.request, "application")
+        delta = self.get_param(self.request, "delta")
+        limit = self.get_param(self.request, "limit", int)
+
+        # Run query
+        table = self.db.view(delta).table(feature_type)
+        req = self.parseRequest(application, self.request, table)
+        svars = self.getSessionVars(application, self.request)
+
+        count = table.filter(req.predicate(), svars).count(limit=limit)
+
+        self.request.response.text = str(count)
+        return self.request.response
+
+    def parseRequest(self, application, request, table):
+        """
+        Returns engine for building record filter etc based on params in REQUEST
+
+        TABLE is a MywFeatureTable"""
+
+        feature_def = self.current_user.featureTypeDef(application, "myworld", table.feature_type)
+
+        return MywFeatureRequest(request, table, feature_def)
+
+    def getSessionVars(self, application, request):
+        """
+        Get values of session variables for predicate evaluation
+        """
+
+        # Get valves from request
+        svars = json.loads(request.params.get("svars", "{}"))
+
+        # Add server-side values
+        return self.current_user.sessionVars(application=application, **svars)
+
+    def _get_aspect_params(self, request):
+        """
+        Get the aspect parameters from REQUESTS
+
+        ASPECTS control which properties of each feature are returned in results"""
+        # ENH: Replace booleans by a list of aspects
+
+        aspects = {}
+        aspects["include_display_values"] = self.get_param(
+            request, "display_values", bool, default=False
+        )
+        aspects["include_lobs"] = self.get_param(request, "include_lobs", bool, default=False)
+        aspects["include_geo_geometry"] = self.get_param(
+            request, "include_geo_geometry", bool, default=False
+        )
+        aspects["lang"] = self.get_param(request, "lang", str, default=None)
+
+        return aspects
+
+    # ==============================================================================
+    #                                     CREATE / UPDATE
+    # ==============================================================================
+
+    @view_config(route_name="myw_feature_controller.no_id", request_method="POST", renderer="json")
+    def create(self):
+        """
+        Create records of type FEATURE_TYPE
+        """
+        feature_type = self.request.matchdict["feature_type"]
+
+        self.current_user.assertAuthorized(
+            self.request,
+            feature_type=feature_type,
+            application=self.request.params.get("application"),
+            right="editFeatures",
+        )
+
+        # Unpick args
+        feature = self._getFeature(self.request)
+        aspects = self._get_aspect_params(self.request)
+        aspects["include_lobs"] = False
+        update = self.get_param(self.request, "update", bool, default=False)
+        delta = self.get_param(self.request, "delta")
+
+        # Do insert (or update)
+        table = self.db.view(delta).table(feature_type)
+        rec = self._insertFeature(table, feature, update=update)
+        Session.commit()
+
+        self.request.response.status_code = 201
+        return rec.asGeojsonFeature(**aspects)
+
+    @view_config(route_name="myw_feature_controller.with_id", request_method="PUT", renderer="json")
+    def update(self):
+        """
+        Update the object with the specified id within the specified table.
+        """
+        feature_type = self.request.matchdict["feature_type"]
+        id = self.request.matchdict["id"]
+
+        self.current_user.assertAuthorized(
+            self.request,
+            feature_type=feature_type,
+            application=self.request.params.get("application"),
+            right="editFeatures",
+        )
+
+        # Unpick args
+        feature = self._getFeature(self.request)
+        aspects = self._get_aspect_params(self.request)
+        aspects["include_lobs"] = False
+        delta = self.get_param(self.request, "delta")
+
+        # Do update
+        table = self.db.view(delta).table(feature_type)
+        rec = self._updateFeature(table, feature, id=id)
+        Session.commit()
+
+        # ENH: Re-read from database
+        self.request.response.status_code = 201
+        return rec.asGeojsonFeature(**aspects)
+
+    @view_config(route_name="myw_feature_controller.with_id", request_method="DELETE")
+    def delete(self):
+        """
+        Delete the object with the specified id within the specified table.
+        """
+        feature_type = self.request.matchdict["feature_type"]
+        id = self.request.matchdict["id"]
+
+        self.current_user.assertAuthorized(
+            self.request,
+            feature_type=feature_type,
+            application=self.request.params.get("application"),
+            right="editFeatures",
+        )
+
+        # Unpick args
+        delta = self.get_param(self.request, "delta")
+
+        # Do delete
+        table = self.db.view(delta).table(feature_type)
+        self._deleteFeature(table, id=id, abort_if_none=True)
+
+        Session.commit()
+        return self.request.response
+
+    @view_config(
+        route_name="myw_feature_controller.transaction", request_method="POST", renderer="json"
+    )
+    def transaction(self):
+        """
+        Apply a set of inserts/updates/deletes as a single transaction
+
+        Body contains a list of tuples of the form:
+          <op>, <feature_type>, <geojson_feature>
+
+        Returns list of record ids (one for each item in transaction)"""
+
+        # Unpick args
+        trans = self._getTransaction(self.request)
+        application = self.get_param(self.request, "application")
+        delta = self.get_param(self.request, "delta")
+
+        # Get handle on database
+        db_view = self.db.view(delta)
+
+        # Check user is still authorised - causes a reauth check so we don't want to do it inside the loop
+        self.current_user.assertAuthorized(self.request, require_reauthentication=True)
+
+        # For each item in transaction ..
+        recs = []
+        for (op, feature_type, feature) in trans:
+
+            # Check authorised to modify feature type
+            self.current_user.assertAuthorized(
+                self.request,
+                require_reauthentication=False,
+                feature_type=feature_type,
+                application=application,
+                right="editFeatures",
+            )
+
+            # Get feature model
+            table = db_view.table(feature_type)
+
+            # Replace placeholders
+            self._substitutePlaceholders(table, feature, recs)
+
+            # Make change
+            if op == "insert":
+                rec = self._insertFeature(table, feature, update=False)
+            elif op == "insertOrUpdate":
+                rec = self._insertFeature(table, feature, update=True)
+            elif op == "update":
+                rec = self._updateFeature(table, feature)
+            elif op == "delete":
+                rec = self._deleteFeature(table, feature, abort_if_none=True)
+            elif op == "deleteIfExists":
+                rec = self._deleteFeature(table, feature, abort_if_none=False)
+            else:
+                raise MywError("Unknown operation:", op)
+
+            if rec:
+                recs.append(rec)
+            else:
+                recs.append(None)
+
+        # Commit change
+        Session.commit()
+
+        read_ids_proc = lambda x: x._id if x else ""
+        return {
+            "ids": list(map(read_ids_proc, recs))
+        }  # map record ids, using empty string for operations that return no  record
+
+    @view_config(
+        route_name="myw_feature_controller.bulk_update", request_method="PUT", renderer="json"
+    )
+    def bulk_update(self):
+        """
+        Apply the same property updates to a list of features.
+
+        Body contains a dict of:
+        {
+          "properties": {"column": "new_value", ...},
+          "features": ["feature/1", "other_feature/7", ...],
+          "individual_changes": {
+            "feature/1": {"column1": "value1", ...},
+            "feature/2": {"column1": "value2", "column2": "value3"...}
+          }
+        }
+
+        Returns the edited IDs (and logs an error if this list differs from the input "features" list)."""
+        delta = self.get_param(self.request, "delta")
+        bulk = self._cast_param(self.request, "body", self.request.body, "json", None)
+
+        properties = bulk["properties"]
+        features_as_urns = bulk["features"]
+        individual_changes = bulk.get("individual_changes", {})
+
+        if not features_as_urns:
+            return self.request.response
+
+        features_by_type = {}
+        for urn in features_as_urns:
+            ftype, pkey = urn.split("/")
+            try:
+                features_by_type[ftype].append(pkey)
+            except KeyError:
+                features_by_type[ftype] = [pkey]
+
+        individual_changes_by_type = {}
+        for urn in individual_changes.keys():
+            ftype, pkey = urn.split("/")
+            try:
+                individual_changes_by_type[ftype].append(pkey)
+            except KeyError:
+                individual_changes_by_type[ftype] = [pkey]
+
+        # combine two lists of feature types and prepare unique feature types to check permissions
+        feature_types_to_assert = list(
+            set(list(features_by_type.keys()) + list(individual_changes_by_type.keys()))
+        )
+
+        # Validate permissions on each feature type first.
+        for feature_type in feature_types_to_assert:
+            self.current_user.assertAuthorized(
+                self.request,
+                feature_type=feature_type,
+                application=self.get_param(self.request, "application"),
+                right="bulkEditFeatures",
+            )
+
+        # Then perform the updates, one feature type at a time.
+        updated_urns = []
+        for feature_type, pkeys in features_by_type.items():
+
+            table = self.db.view(delta).table(feature_type)
+            updated_pks = table.updateManyFrom(pkeys, properties)
+            updated_urns.extend([f"{feature_type}/{pk}" for pk in sorted(updated_pks)])
+
+            # Return from updateManyFrom will always be the correct type, sometimes str sometimes
+            # int. Convert them to str so they compare with the input correctly (always str, from
+            # URN.)
+            pkeys_set, updated_pkeys_set = set(pkeys), set(map(str, updated_pks))
+            if pkeys_set != updated_pkeys_set:
+                # Log which URN(s) failed to reach a feature. Shouldn't happen if client has up to
+                # date view of features.
+                missing_pkeys = pkeys_set - updated_pkeys_set
+                missing_urns = [f"{feature_type}/{pk}" for pk in sorted(missing_pkeys)]
+                self.progress("warning", f"Failed to bulk-edit features: {missing_urns}")
+
+        # Update individual changes
+        # loop through individual changes and update each feature
+        for urn in individual_changes.keys():
+            feature_type, pkey = urn.split("/")
+            table = self.db.view(delta).table(feature_type)
+            table.updateManyFrom([pkey], individual_changes[urn])
+
+        Session.commit()
+
+        return {"updated_features": updated_urns}
+
+    def _substitutePlaceholders(self, table, feature, recs):
+        """
+        Replace any placeholders used in FEATURE properties
+        """
+
+        # Placeholders are only used with stored reference/foreign_key fields
+        for field_name, field_desc in list(
+            table.descriptor.storedFields("reference", "foreign_key").items()
+        ):
+            value = feature.properties.get(field_name)
+            if not isinstance(
+                value, dict
+            ):  # placeholders are dictionaries so skip any value that's not a dict
+                continue
+
+            placeholder = value.get("operation")
+            base_type = field_desc.type_desc.base
+            if base_type == "reference":
+                feature.properties[field_name] = recs[placeholder]._urn()
+            elif base_type == "foreign_key":
+                feature.properties[field_name] = recs[placeholder]._id
+
+    def _insertFeature(self, table, feature, update=True):
+        """
+        Create record from FEATURE (a geojson.Feature)
+
+        If UPDATE is True and feature already exists, update it
+
+        Note: For features with generated keys, always creates a new record"""
+
+        key_field_desc = table.descriptor.key_field
+
+        # Get supplied key (if there is one)
+        id = feature.properties.get(key_field_desc.name)
+
+        # Ignore supplied key for generated keys (to avoid messing up sequences)
+        if id and key_field_desc.generator:
+            del feature.properties[key_field_desc.name]
+            id = None
+
+        # Check for already exists
+        rec = None
+        if id:
+            rec = table.get(id)
+
+        if rec and not update:
+            raise exc.HTTPPreconditionFailed()
+
+        # TODO: Check for exists but not authorised to access (due to filters)
+
+        try:
+            # Do action
+            if rec:
+                rec = table.updateFrom(id, feature)
+            else:
+                rec = table.insert(feature)
+        except sqlalchemy.exc.IntegrityError as cond:
+            print("Invalid Data:", self.request.url, ":", "Value:", cond)
+            raise exc.HTTPBadRequest("Invalid data")
+        except sqlalchemy.exc.DataError as cond:
+            print("Invalid Data:", self.request.url, ":", "Value:", cond)
+            raise exc.HTTPBadRequest("Invalid data")
+        except ValueError as e:
+            # ValueError's message is just on a tuple, .args, of all the args it recieved.
+            # Ensure we concatenate all the args that were passed.
+            message = " ".join(str(arg) for arg in e.args)
+            print("Malformed request:", self.request.url, ":", "Value:", message)
+            raise exc.HTTPBadRequest("Malformed request")
+
+        # Check for failed
+        if not rec:
+            raise exc.HTTPNotFound()  # ENH: Find a better code
+
+        return rec
+
+    def _updateFeature(self, table, feature, id=None):
+        """
+        Update record identified by FEATURE (a geojson.Feature)
+        """
+
+        if not id:
+            id = feature.properties[table.descriptor.key_field_name]
+
+        try:
+            rec = table.updateFrom(
+                id, feature
+            )  # TODO: Check for not authorised to access this record
+        except sqlalchemy.exc.DataError as cond:
+            print("Invalid Data:", self.request.url, ":", "Value:", cond)
+            raise exc.HTTPBadRequest("Invalid data")
+        except ValueError as e:
+            # ValueError's message is just on a tuple, .args, of all the args it recieved.
+            # Ensure we concatenate all the args that were passed.
+            message = " ".join(str(arg) for arg in e.args)
+            print("Malformed request:", self.request.url, ":", "Value:", message)
+            raise exc.HTTPBadRequest("Malformed request")
+
+        if not rec:
+            raise exc.HTTPNotFound()
+
+        return rec
+
+    def _deleteFeature(self, table, feature=None, id=None, abort_if_none=False):
+        """
+        Delete record identified by FEATURE (a geojson.Feature)
+        """
+
+        if not id:
+            id = feature.properties[table.descriptor.key_field_name]
+
+        rec = table.deleteById(id)  # TODO: Check for not authorised to access this record
+
+        if not rec and abort_if_none:
+            raise exc.HTTPNotFound()
+
+        return rec
+
+    def _getFeature(self, request):
+        """
+        Get GeoJSON feature from request body
+        """
+
+        factory = lambda ob: GeoJSON.to_instance(ob)
+
+        body = request.environ["wsgi.input"].read(int(request.environ["CONTENT_LENGTH"]))
+
+        obj = geojson_loads(body, object_hook=factory)
+        as_json = json.loads(body)
+
+        if isinstance(obj, Feature):
+            # If "geometry" was missing from the request, also delete it from the feature.
+            if "geometry" not in as_json:
+                del obj["geometry"]
+
+            return obj
+
+        print("Malformed request:", request.url, ":", "Body not GeoJSON feature")
+        raise exc.HTTPBadRequest()
+
+    def _getTransaction(self, request):
+        """
+        Get transaction entries, with GeoJSON features, from request body
+        """
+        factory = lambda ob: GeoJSON.to_instance(ob)
+        body = request.environ["wsgi.input"].read(int(request.environ["CONTENT_LENGTH"]))
+        trans = json.loads(body, object_hook=factory)
+        as_json = json.loads(body)
+
+        try:
+            for i, (_, _, geojson_feature) in enumerate(trans):
+                _, _, json_feature = as_json[i]
+                if "geometry" not in json_feature:
+                    del geojson_feature["geometry"]
+        except TypeError:
+            print("Malformed request:", request.url, ":", "Body not a list.")
+            raise exc.HTTPBadRequest()
+
+        if any((not isinstance(geojson_feature, Feature)) for _, _, geojson_feature in trans):
+            print(
+                "Malformed request:",
+                request.url,
+                ":",
+                "Not all entries are valid GeoJSON features.",
+            )
+            raise exc.HTTPBadRequest()
+
+        return trans

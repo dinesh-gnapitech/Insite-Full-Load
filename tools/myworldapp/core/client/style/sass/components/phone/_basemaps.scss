@@ -1,0 +1,17 @@
+#basemaps-list li,
+.status-list li {
+    padding: 10px 15px;
+    border-bottom: $border-lighter;
+    width: calc(100% - 30px);
+}
+#basemaps-list li {
+    &.selected,
+    &:hover {
+        background: #f6f6f6;
+        color: $color-link-font;
+    }
+}
+#basemaps-list {
+    height: 100%;
+    overflow-y: auto;
+}

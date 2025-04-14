@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 19.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   viewBox="12 -12 20 20"
+   xml:space="preserve"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="glyph-directions.svg"
+   width="20"
+   height="20"><metadata
+     id="metadata4147"><rdf:RDF><cc:Work
+         rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+     id="defs4145" /><sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     id="namedview4143"
+     showgrid="false"
+     inkscape:zoom="17.6875"
+     inkscape:cx="24"
+     inkscape:cy="24"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="Layer_1" /><style
+     type="text/css"
+     id="style4137">
+	.st0{fill:#535353;}
+	.st1{fill:none;}
+</style><path
+     class="st0"
+     d="m 31.743457,-2.734072 -9.009385,-9.009385 c -0.375391,-0.375391 -1.042753,-0.375391 -1.418143,0 l -9.009386,9.009385 c -0.37539,0.375391 -0.37539,1.042753 0,1.418143 l 9.009386,9.009386 0,0 c 0.37539,0.37539 1.042752,0.37539 1.418143,0 l 9.009385,-9.009386 c 0.375391,-0.37539 0.375391,-1.042752 0,-1.418143 z m -7.716371,3.211678 0,-2.502606 -4.004172,0 0,3.003128 -2.002085,0 0,-4.004171 c 0,-0.542231 0.458811,-1.001043 1.001043,-1.001043 l 5.005214,0 0,-2.502607 3.503649,3.50365 -3.503649,3.503649 z"
+     id="path4139"
+     inkscape:connector-curvature="0"
+     style="fill:#535353" /><path
+     class="st1"
+     d="m 12,-40 48,0 0,48 -48,0 0,-48 z"
+     id="path4141"
+     inkscape:connector-curvature="0"
+     style="fill:none" /></svg>

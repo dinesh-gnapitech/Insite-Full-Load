@@ -1,0 +1,69 @@
+.ui-layout-resizer {
+    overflow: visible !important;
+}
+.ui-layout-resizer-west-open:hover,
+.ui-layout-resizer-east-open:hover,
+#layout-map-view > .ui-layout-resizer-south-open:hover {
+    background-color: #cccccc;
+}
+.ui-layout-toggler-west,
+.ui-layout-toggler-east {
+    background-repeat: no-repeat;
+    height: 42px !important;
+    overflow: visible !important;
+    width: 21px !important;
+}
+.ui-layout-toggler-west-closed {
+    background-image: url('#{$path-to-panels-img}panel_west_show.png');
+    border-radius: 0 8px 8px 0;
+    left: 1px !important;
+}
+.ui-layout-toggler-east-open {
+    background-image: url('#{$path-to-panels-img}panel_east_hide.png');
+    border-radius: 8px 0 0 8px;
+    left: -15.5px !important;
+}
+
+.ui-layout-toggler-east-closed {
+    background-image: url('#{$path-to-panels-img}panel_east_show.png');
+    border-radius: 8px 0 0 8px;
+    left: -20px !important;
+}
+.ui-layout-toggler-west-open {
+    background-image: url('#{$path-to-panels-img}panel_west_hide.png');
+    border-radius: 0 8px 8px 0;
+    left: -2px !important;
+}
+.ui-layout-center {
+    .ui-layout-resizer-south-open {
+        display: block !important;
+    }
+    .ui-layout-toggler-south-open {
+        background-image: url('#{$path-to-panels-img}panel_bottom_hide.png');
+        border-radius: 8px 8px 0 0;
+        height: 20px !important;
+        top: -15.8px !important;
+        width: 40px !important;
+    }
+    .ui-layout-toggler-south-closed {
+        background-image: url('#{$path-to-panels-img}panel_bottom_show.png');
+        border-radius: 8px 8px 0 0;
+        height: 20px !important;
+        top: -20px !important;
+        width: 40px !important;
+    }
+}
+
+.increase-toggler-focus-area {
+    position: absolute;
+    content: '';
+    top: -20px;
+    bottom: -20px;
+    left: -20px;
+    right: -20px;
+}
+/*to avoid the hide panel button overlapping the datepicker dialog*/
+.ui-layout-west .hasDatepicker {
+    z-index: 1;
+    position: relative;
+}

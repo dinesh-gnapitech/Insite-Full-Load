@@ -1,0 +1,14 @@
+#directions-current {
+    vertical-align: top;
+    display: inline-block;
+    background: url('#{$path-to-img}location.svg') no-repeat left center transparent;
+    background-size: 26px;
+    @include size(35px, 39px);
+    opacity: 0.7;
+}
+.directions-from-container {
+    margin-bottom: 39px;
+}
+.directions-panel-right {
+    top: calc(50% - 15px);
+}

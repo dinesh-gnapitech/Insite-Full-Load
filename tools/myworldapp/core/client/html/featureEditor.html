@@ -1,0 +1,41 @@
+<div class="content-centered panel-header">
+    <div class="panel-title"><%- myw_title %></div>
+    <div class="panel-subtitle"><%- myw_short_description %></div>
+    <%if (masterView) {%>
+    <span class="master-layer-icon" title="{:master_layer}"></span>
+    <%}%>
+</div>
+<div class="feature-edit-container">
+    <div class="feature-fields-and-map-label">
+        <div id="field-editors"></div>
+        <%geometries.forEach(function(geomDD) {%>
+        <div class="mapObject" geom_field="<%= geomDD.internal_name%>">
+            <h4
+                class="mapObjectLabel set-map-object geom_field_<%= geomDD.internal_name%>"
+                data-feature-editor-set-map-object
+            >
+                <%= geomDD.external_name %> <%if (geomDD.type == 'point') {%>
+                <div
+                    class="<%= isUserLocationTracking ? 'show' : '' %>"
+                    data-feature-editor-set-map-object
+                    data-feature-editor-use-user-location
+                    title="<%= set_to_current_location_tooltip %>"
+                ></div>
+                <%}%>
+            </h4>
+            <div
+                class="mapObjectValidationLabel inlineValidation geom_field_<%= geomDD.internal_name%>"
+            ></div>
+        </div>
+        <%});%>
+
+        <!--Messages for the user: alert, success and error -->
+        <div class="message-container"></div>
+    </div>
+
+    <div class="feature-edit-actions content-centered padded5 top-separator bottom-separator">
+        <button class="ui-button cancel">{:cancel}</button>
+        <% if (deletable) %> <button class="ui-button delete">{:delete}</button> <% ; %>
+        <button class="ui-button primary-btn save">{:save}</button>
+    </div>
+</div>

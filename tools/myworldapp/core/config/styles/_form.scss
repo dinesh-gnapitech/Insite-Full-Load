@@ -1,0 +1,35 @@
+.myw-form-page {
+    .ant-card-body {
+        padding: 0px !important;
+    }
+}
+.myw-form-view {
+    padding: 14px !important;
+    .draggable-list {
+        margin-top: 14px !important;
+    }
+    .ant-card-body {
+        padding: 0px !important;
+    }
+    .ant-input {
+        width: 100%;
+        max-width: 500px;
+    }
+    .ant-input.input-small {
+        width: 206px;
+    }
+    .ant-input.input-full-width {
+        width: 100%;
+        max-width: 500px;
+    }
+    .ant-select.input-small {
+        width: 220px;
+    }
+    .ant-form-item-label {
+        text-overflow: ellipsis;
+        line-height: 40px;
+    }
+    .ant-form-item-control {
+        line-height: 40px;
+    }
+}

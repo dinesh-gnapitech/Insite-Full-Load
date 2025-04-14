@@ -1,0 +1,282 @@
+#layers-overlays-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.overlay-button {
+    list-style-type: none; /* Since they have a flex container inside, helps in aligning those to the top*/
+    background: $color-light-background;
+    border: $border-light;
+    border-right: none; /* To over-ride jquery-ui style */
+    border-left: none; /* To over-ride jquery-ui style */
+    color: $color-dark-font !important;
+    text-align: left;
+    position: relative;
+    margin-top: -1px;
+    @include no-user-select;
+
+    > span:first-child,
+    > div:first-child {
+        padding-left: 18px;
+    }
+    .master-layer-icon {
+        width: 18px;
+        margin-top: -2px;
+        position: relative;
+        right: 0;
+    }
+    /*Groups*/
+    .relative .overlay-button-name {
+        max-width: calc(100% - 70px);
+    }
+}
+#layers-overlays {
+    width: 100%;
+
+    div.overlay-button {
+        font-size: medium;
+        padding: 4px 14px 4px 4px;
+        width: 94.5%;
+        border-bottom: 1px solid #bbb;
+    }
+}
+.layer-item-row {
+    padding-right: 17px;
+    position: relative;
+}
+.layer-checkbox-container,
+.group-checkbox,
+.layer-list-delete {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    @include size(18px);
+    box-sizing: border-box;
+    margin-top: -6.5px;
+}
+
+.layer-list-delete {
+    top: 6px;
+    right: 12px;
+    @include size(32px);
+    img {
+        margin-top: 12px;
+        margin-left: 8px;
+    }
+}
+
+.layer-list-widgets {
+    padding-left: 18px;
+}
+
+.reorder-button {
+    position: absolute;
+    top: 20px;
+    right: 52px;
+    box-sizing: border-box;
+    margin-top: -13.5px;
+    background: $color-light-background;
+}
+
+.layer-thumbnail {
+    height: 26px; /* To vertically center it */
+    img {
+        display: inline-block;
+        border: 1px solid #cccccc;
+        @include size(24px);
+        border-radius: 3px;
+        margin-right: 5px;
+    }
+}
+.overlay-button-name {
+    vertical-align: top;
+    font-size: 1.1em;
+    font-weight: 600;
+    display: inline-block;
+    margin-right: 2px;
+    > label {
+        display: block;
+        padding: 10px 0;
+        margin: -1px 0;
+        @include text-overflow-ellipsis;
+    }
+}
+.overlay-invalid .invalid-layer-icon {
+    background: url('#{$path-to-img}alert-grey.svg') no-repeat center transparent;
+    background-size: 14px;
+    @include size(20px, 16px);
+    display: block;
+
+    &:not(:last-child) {
+        margin-right: 8px;
+    }
+}
+.layer-title-container {
+    width: calc(100% - 23px);
+
+    .overlay-button-name {
+        overflow: hidden;
+    }
+
+    .expandLayerWidgets {
+        &.disabled {
+            display: none;
+        }
+    }
+}
+
+.order-mode .layer-title-container {
+    width: calc(100% - 75px);
+}
+
+.layer-title-container,
+.overlay-button .relative {
+    display: flex;
+    display: -ms-flexbox;
+    align-items: center;
+    -ms-flex-align: center;
+}
+
+.expandLayerGroup,
+.expandWidgetGroup {
+    display: block;
+    background: url('#{$path-to-img}collapsed.svg') no-repeat center;
+    background-size: 16px;
+    @include size(32px);
+    border-radius: $border-radius-circle;
+
+    &:hover {
+        box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.1) 0 1px 0;
+    }
+    &.expanded {
+        background-image: url('#{$path-to-img}expanded.svg');
+    }
+}
+
+/*Sub-layers*/
+.sub-layer {
+    padding: 0 18px 0 40px;
+    font-weight: normal;
+    position: relative;
+
+    &:hover .overlay-button-name {
+        color: $color-link-font;
+    }
+    > span {
+        vertical-align: middle;
+    }
+    .overlay-button-name label {
+        font-weight: normal;
+        line-height: 1.2em;
+    }
+}
+.sub-layer-container {
+    padding-bottom: 5px;
+    padding-top: 5px;
+}
+.sub-layer-select,
+.layer-checkbox,
+.layer-group-select {
+    position: absolute;
+    right: 1px;
+    box-sizing: border-box;
+}
+.checkbox-mask {
+    position: absolute;
+    right: 1px;
+    box-sizing: border-box;
+    @include size(18px);
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+    pointer-events: none;
+    touch-action: none;
+}
+.overlay-disabled {
+    label {
+        color: $color-light-font !important;
+        pointer-events: none;
+        touch-action: none;
+    }
+    .checkbox-mask {
+        display: inline-block !important;
+        pointer-events: none;
+        touch-action: none;
+    }
+}
+.layer-checkbox .checkbox-mask {
+    top: calc(50% - 3px);
+    right: 0.5px;
+    display: none;
+    pointer-events: none;
+    touch-action: none;
+}
+
+.layer-widget-contianer {
+    &.hidden {
+        display: none;
+    }
+}
+.render-order-container {
+    display: flex;
+    background: #fff;
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    margin: -2px;
+    font-size: 1.1em;
+}
+.point-render-order {
+    margin-top: 3px;
+    margin-right: 5px;
+    display: inline-block;
+}
+
+.render-order-editor {
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    height: 24px;
+}
+.render-order-input {
+    font-family: inherit;
+    padding: 5px;
+    width: 2.8ex;
+    vertical-align: top;
+    height: 14px;
+    border: none;
+    text-align: right;
+    &:focus {
+        outline: none;
+    }
+}
+.render-order-input[type='number']::-webkit-inner-spin-button,
+.render-order-input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.render-order-input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+.render-incrementor-btn {
+    height: 24px;
+    width: 15px;
+    background-repeat: no-repeat;
+    background-size: 8px;
+    box-shadow: inset 0 -35px 0 #ffffff33, 0 2px 2px #0000000d;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: top;
+    &:hover,
+    &:focus {
+        box-shadow: none;
+    }
+}
+
+.render-order-down {
+    background-image: url('#{$path-to-img}panels/decrease.svg');
+    background-position: 6px 50%;
+}
+.render-order-up {
+    background-image: url('#{$path-to-img}panels/increase.svg');
+    background-position: 0px 50%;
+}

@@ -1,0 +1,131 @@
+/*
+ * === Over-riding jQuery UI dialog styles including the jquery ui buttons styles ===
+ */
+.ui-widget-content {
+    border-color: #ddd;
+    padding: 0;
+}
+.ui-widget-content a {
+    color: #246bd4;
+}
+.ui-widget.ui-widget-content {
+    border: none;
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12),
+        0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+.ui-dialog .ui-dialog-buttonpane {
+    margin-top: 0;
+    border-color: #ddd;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    padding: 0.3em 0.4em 0.5em 0.4em;
+}
+.ui-dialog-buttonset {
+    padding-left: 10px;
+}
+.ui-widget-header {
+    background: white;
+    border: 0 none #fff;
+    border-radius: 0;
+    border-bottom: 1px solid #ddd;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+.ui-dialog .ui-dialog-titlebar {
+    padding: 8px 15px;
+    font-size: 1.15em;
+}
+.ui-dialog .ui-dialog-title {
+    width: calc(100% - 25px);
+    padding-right: 25px;
+}
+.ui-widget {
+    font-family: inherit;
+    font-size: 1.1em;
+}
+.ui-state-default .ui-icon {
+    margin-left: -8.5px;
+}
+.ui-dialog .ui-dialog-titlebar-close {
+    right: 13px;
+    background: none !important;
+    border: none !important;
+    padding: 19px !important;
+    margin: -19px -10px 0 0;
+    box-shadow: none !important;
+}
+.ui-button .ui-icon-closethick,
+.ui-button:hover .ui-icon-closethick,
+.ui-button:focus .ui-icon-closethick {
+    background-image: url('../../images/x.svg');
+    background-size: 12px 12px;
+    background-position: center;
+}
+.ui-button-icon-only:hover {
+    background: none;
+    outline: none;
+}
+.ui-dialog .ui-dialog-titlebar-close .ui-button-text {
+    display: none;
+}
+.no-close-button .ui-dialog-titlebar-close {
+    display: none;
+}
+.ui-dialog.noStyle {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.ui-dialog.noStyle .ui-dialog-titlebar {
+    display: none;
+}
+.ui-widget,
+.ui-widget input,
+.ui-widget select,
+.ui-widget textarea,
+.ui-widget button {
+    font-family: inherit;
+}
+.ui-draggable .ui-dialog-titlebar {
+    cursor: auto;
+}
+.ui-draggable .ui-dialog-title {
+    cursor: move;
+}
+.ui-tabs-nav .ui-tabs-active.ui-state-active {
+    border: 1px solid #ddd;
+    border-bottom-color: #fff;
+}
+.ui-tabs .ui-tabs-nav li {
+    margin-bottom: -1px !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border: none;
+    background: none;
+    box-shadow: none;
+}
+.ui-state-active a,
+.ui-state-active a:link {
+    color: #212121 !important;
+}
+.ui-tabs .ui-tabs-nav li:hover {
+    background-color: #eeeeee;
+}
+.ui-tabs .ui-tabs-nav li:focus,
+.ui-tabs .ui-tabs-nav li > a:focus {
+    outline: none;
+}
+.ui-tabs-nav .ui-tabs-active.ui-state-active:hover {
+    background-color: inherit;
+}
+.ui-widget-overlay {
+    background: url(../../../lib/jquery/images/ui-bg_diagonals-thick_20_666666_40x40.png) repeat 50%
+        50% #aaaaaa;
+    opacity: 0.3;
+}
+.ui-progressbar-value {
+    border: 1px solid #fba826;
+    background: linear-gradient(180deg, #ffc872, #ea9d4a);
+}

@@ -1,0 +1,95 @@
+#notifications-container {
+    position: fixed;
+    bottom: 40px;
+    right: 0;
+    transition: bottom 200ms, right 200ms;
+    transition-timing-function: ease-out;
+    width: 45px;
+    cursor: pointer;
+    z-index: 1000;
+
+    > span {
+        display: block;
+        @include size(24px);
+        padding: 8px;
+    }
+    #internet_status_icon {
+        display: inline-block;
+        background-size: 18px;
+        background-color: $color-toolbar-icons;
+        @include size(30px);
+        vertical-align: middle;
+        border-radius: 15px;
+    }
+    .datasource_error {
+        background: url('#{$path-to-img}alert_white.svg') no-repeat center 5px;
+    }
+    .offline {
+        background: url('#{$path-to-img}no_internet_white.svg') no-repeat center 5px;
+    }
+    .plugin-icon > * {
+        @include size(30px);
+    }
+}
+&[data-myw-map-rotation-control] #notifications-container {
+    bottom: 100px;
+    right: 6px;
+}
+.notification-popup {
+    position: fixed;
+    background-color: rgb(251, 239, 162);
+    text-align: left;
+    padding: 3px 0 5px;
+    display: flex;
+    flex-direction: row;
+}
+.notification-title {
+    white-space: nowrap;
+    font-weight: 600;
+    padding-left: 10px;
+}
+.notification-desc {
+    padding: 0 10px;
+    @include text-overflow-ellipsis;
+}
+.notification-messages-container {
+    position: fixed;
+    bottom: 0;
+    padding-bottom: 15px;
+    overflow: auto;
+    @include size(100%, calc(100% - 15px));
+    z-index: 1000;
+    display: none;
+
+    > .overlay-container {
+        max-height: 100%;
+        overflow: auto;
+    }
+}
+.error-desc {
+    padding-left: 27px;
+    background-image: url('#{$path-to-img}alert.svg');
+    background-repeat: no-repeat;
+    background-position: left 1px;
+    @include text-overflow-ellipsis;
+
+    &:hover {
+        color: $color-link-font;
+    }
+}
+.selected .error-desc {
+    font-weight: 600;
+    white-space: normal;
+}
+.error-reason {
+    @include text-overflow-ellipsis;
+    padding-top: 8px;
+    display: none;
+}
+li.selected .error-reason {
+    display: block;
+}
+.dismiss-alerts {
+    margin: 10px;
+    display: inline-block;
+}

@@ -1,0 +1,51 @@
+#link-panel {
+    textarea {
+        padding: 5px;
+        width: calc(100% - 10px);
+        max-width: calc(100% - 10px);
+        height: 73px;
+        border: none;
+        box-shadow: none;
+        resize: vertical;
+
+        &:focus {
+            outline: none;
+        }
+    }
+    .map-link-box {
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin-bottom: 10px;
+    }
+}
+
+.map-link-header {
+    padding: 2px 5px;
+    color: #949494;
+    font-weight: 600;
+    border-bottom: 1px solid #e4e4e4;
+    background-color: rgba(249, 249, 249, 0.88);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    div {
+        display: inline-block;
+    }
+}
+
+.map-link-content {
+    display: flex;
+    justify-content: center;
+}
+
+.map-link-button {
+    float: right;
+
+    &:hover {
+        cursor: pointer;
+        text-decoration: underline;
+    }
+}
+.all-links {
+    position: absolute;
+    top: -100px;
+}

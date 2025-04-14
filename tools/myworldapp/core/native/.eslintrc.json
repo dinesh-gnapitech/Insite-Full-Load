@@ -1,0 +1,6 @@
+{
+    "rules": {
+        "no-await-in-loop": "off" //in native environment, we don't want to paralelize queries to spatialite
+    },
+    "ignorePatterns": ["libs/difflib.js"]
+}

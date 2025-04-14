@@ -1,0 +1,27 @@
+#related-notes-container {
+    margin-bottom: 5px;
+    box-shadow: $box-shadow-main;
+}
+.note-container:first-child {
+    padding-top: 10px;
+}
+.note-container:last-child {
+    padding-bottom: 10px;
+}
+.note-container {
+    padding: 5px 12px;
+    position: relative;
+    cursor: pointer;
+    font-weight: 600;
+    line-height: 16px;
+}
+.notes-list div {
+    word-wrap: break-word;
+}
+.note-infowindow-content div {
+    word-wrap: break-word;
+}
+.note-delete {
+    float: right;
+    width: 15px;
+}

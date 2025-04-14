@@ -1,0 +1,20 @@
+.myw-layer-features-form {
+    .ant-card-body {
+        padding-top: 0px;
+        padding-right: 0px;
+        padding-left: 0;
+    }
+    .ant-table-tbody > tr.ant-table-row-selected td {
+        background: white;
+    }
+    .ant-table-thead {
+        background: $colour-table-header;
+        th,
+        th.ant-table-column-sort {
+            background: $colour-table-header;
+        }
+    }
+    .ant-table-tbody {
+        border: 1px solid $colour-table-border;
+    }
+}

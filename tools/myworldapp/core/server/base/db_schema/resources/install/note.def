@@ -1,0 +1,57 @@
+{
+   "name": "note", 
+   "external_name": "{:note_feature_name}", 
+   "title": "{:note_feature_title}", 
+   "short_description": null, 
+   "track_changes": true, 
+   "editable": true, 
+   "fields": [
+      {
+         "name": "id", 
+         "external_name": "{:note_feature_id_name}", 
+         "type": "integer", 
+         "key": true, 
+         "generator": "sequence"
+      }, 
+      {
+         "name": "title", 
+         "external_name": "{:note_feature_title_name}", 
+         "type": "string(100)", 
+         "mandatory": true
+      }, 
+      {
+         "name": "details", 
+         "external_name": "{:note_feature_details_name}", 
+         "type": "string(1000)", 
+         "mandatory": false
+      }, 
+      {
+         "name": "referenced_feature", 
+         "external_name": "{:note_feature_ref_name}", 
+         "type": "reference", 
+         "mandatory": true,
+	      "indexed": true
+      }, 
+      {
+         "name": "myw_geometry_world_name", 
+         "external_name": "myw_geometry_world_name", 
+         "type": "string(100)", 
+         "default": "geo", 
+         "mandatory": false
+      }, 
+      {
+         "name": "the_geom", 
+         "type": "point",
+	      "external_name": "Location",
+         "world_types": "all"
+      }
+   ], 
+   "groups": [], 
+   "searches": [], 
+   "queries": [
+      {
+         "value": "{:note_feature_query_value}", 
+         "description": "{:note_feature_query_desc}"
+      }
+   ]
+}

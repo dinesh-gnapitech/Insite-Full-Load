@@ -1,0 +1,155 @@
+.ad-hoc-query-content {
+    position: relative;
+    padding-bottom: 40px;
+    overflow: auto !important;
+}
+
+.query-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    .query-row-predicate-clause {
+        flex-grow: 1;
+    }
+}
+.join-clause {
+    margin-bottom: 10px;
+    .join-clause {
+        background: #eee;
+        padding: 9px;
+        border-radius: 2px;
+        margin-top: 9px;
+        border: 1px solid #ccc;
+    }
+    .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause .join-clause .join-clause {
+        background: #ffffff;
+    }
+    .join-clause .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause .join-clause,
+    .join-clause .join-clause .join-clause .join-clause .join-clause .join-clause .join-clause {
+        background: #eee;
+    }
+}
+.object-title,
+.query-title {
+    font-weight: 600;
+    margin: 10px 0;
+}
+.feature-type-select {
+    margin-top: 8px;
+    min-width: 400px;
+}
+.query-field {
+    width: 100%;
+    min-width: 170px;
+}
+.query-predicate-operator {
+    margin: 10px 0 4px 0;
+}
+.remove-simple-clause {
+    margin-right: 4px;
+}
+.geom-clause {
+    padding: 8px 4px 6px 4px;
+}
+.join-clause-row {
+    padding: 6px 0 0 0;
+}
+.build-query-link {
+    color: $color-link-font;
+    font-weight: 300;
+    cursor: pointer;
+}
+.simple-clause-fields-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    .simple-clause-fields {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 2px;
+        height: 30px;
+        margin-right: 4px;
+        *:focus-visible {
+            outline: none;
+            outline-color: none;
+            outline-style: auto;
+            outline-width: 0;
+        }
+        .last-clause-el {
+            border-right: none;
+        }
+        .query-value {
+            height: 100%;
+            background: #ffffff;
+            textarea {
+                max-height: 100%;
+                resize: none;
+            }
+            input,
+            select {
+                height: 30px;
+            }
+            * {
+                border: none;
+                box-shadow: none;
+                background: transparent;
+            }
+            > div {
+                height: 100% !important;
+            }
+            .ui-select {
+                min-width: 170px;
+            }
+        }
+        .ant-select .ant-select-selector {
+            border-color: transparent;
+            height: 30px;
+        }
+        select.query-operator {
+            border-radius: 0;
+            border-top: none;
+            border-bottom: none;
+            box-shadow: none;
+            height: 30px;
+        }
+        .array-field-editor {
+            display: flex;
+            button {
+                padding: 0 8px;
+                background-color: transparent;
+                cursor: pointer;
+            }
+        }
+    }
+    .ui-button {
+        height: 34px;
+    }
+}
+.array-field-editor {
+    background-color: #fff;
+    .ui-input {
+        background-color: #ffffff;
+    }
+    .ui-dialog-titlebar {
+        display: none;
+    }
+    .ui-dialog-content {
+        padding-top: 15px;
+    }
+}
+.array-list-container {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    > * {
+        margin-bottom: 4px;
+    }
+}
+.checkboxField.inactive {
+    color: #c1c1c1;
+}

@@ -1,0 +1,111 @@
+.add-layer-panel {
+    margin: -0.5em -1em;
+}
+#add-layer-tabs {
+    padding: 7px 13px 0 13px;
+    width: calc(100% - 26px);
+    border-bottom: 1px solid #ccc;
+    .tabControl_nav {
+        margin-bottom: -1px;
+    }
+    .tabControl_tab_space {
+        border-top: none;
+    }
+}
+.add-layer-list {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    border-collapse: collapse;
+}
+.layer-icon img {
+    border: $border-dark;
+    @include size(28px);
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.layer_description {
+    color: #6e6e6e;
+}
+.no-available-layer-rows {
+    text-align: center;
+    padding: 10px;
+}
+.text-layer-search {
+    background: url('#{$path-to-img}text-search.svg') no-repeat scroll 5px center
+        $color-light-background;
+    width: 200px;
+    padding-left: 25px !important;
+    margin: 15px 15px 10px 15px;
+    background-size: 15.75px 16.25px;
+}
+.add-layer-cell {
+    height: 28px;
+}
+.add-layer-row {
+    position: relative;
+    padding: 5px 15px 5px 8px;
+    margin-bottom: 6px;
+
+    &:hover {
+        background: #f6f6f6;
+        cursor: pointer;
+        color: $color-link-font;
+    }
+    span {
+        display: table-cell;
+        vertical-align: middle;
+    }
+    .expandLayerGroup {
+        width: 36px;
+    }
+    .edit-btn {
+        display: inline-block;
+        background: url('#{$path-to-img}pen.png') no-repeat center;
+        background-size: 16px;
+        @include size(32px);
+        border-radius: $border-radius-circle;
+        position: absolute;
+        top: calc(50% - 16px);
+        right: 21px;
+
+        &:hover {
+            box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.1) 0 1px 0;
+        }
+    }
+    .add-layer-button-cell {
+        @include size(40px, 40px);
+
+        .add-layer-button {
+            background: url('#{$path-to-actions-img}add-layers.svg') no-repeat scroll 0px center;
+            background-color: $color-action-icons;
+            @include size(
+                38px,
+                38px
+            ); // Styling issue in windows native app means we need to set this to be smaller than the actual image
+        }
+    }
+}
+.sub-layer-list {
+    padding: 10px 5px 5px 40px;
+    li {
+        padding-bottom: 7px;
+    }
+}
+
+.layer-editor-form {
+    margin: 0 10px;
+
+    #layer-editor-tabs {
+        margin: 1px -10px 10px;
+    }
+
+    td:first-child {
+        width: 1px;
+        white-space: nowrap;
+    }
+    .ui-checkbox {
+        margin-top: 7px;
+        margin-bottom: 7px;
+    }
+}

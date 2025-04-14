@@ -1,0 +1,20 @@
+{
+   "name": "Extract Regions", 
+   "category": "overlay", 
+   "code": "exr", 
+   "description": "Definitions of extract extents", 
+   "datasource": "myworld", 
+   "spec": {
+      "rendering": "vector"
+   }, 
+   "min_scale": 1, 
+   "max_scale": 21, 
+   "feature_types": [
+      {
+         "name": "myw_extract_region", 
+         "field_name": "the_geom", 
+         "line_style": "purple:5", 
+         "fill_style": "purple:20"
+      }
+   ]
+}

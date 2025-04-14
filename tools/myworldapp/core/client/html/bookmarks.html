@@ -1,0 +1,18 @@
+<script type="text/template" id="bookmark-brief-template">
+    <% if (dialog === "manage") {%>
+        <span class ='bookmarkImg'><img src='<%=icon%>'></span>
+        <span class = 'listBookmarkName'><%=name%></span>
+    <%}%>
+</script>
+
+<script type="text/template" id="bookmark-detail-template">
+    <div class = 'bookmarkDetail'>
+    </div>
+</script>
+
+<script type="text/template" id="manage-bookmark-actions-template">
+    <div class = 'bookmarkActions content-centered'>
+        <button class = 'ui-button bookmark-delete'>{:delete_btn}</button>
+        <button class = 'ui-button bookmark-save primary-btn'>{:save_btn}</button>
+    </div>
+</script>

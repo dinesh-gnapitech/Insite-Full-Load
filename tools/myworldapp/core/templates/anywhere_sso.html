@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>IQGeo Login</title>
+
+    <link rel="apple-touch-icon" href="../../images/logos/apple-touch-icon.ico" />
+    <link rel="shortcut icon" href="../../favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="../../bundles/styles/myWorld-client.bundle.css" />
+    <link rel="stylesheet" type="text/css" href="../../style/home.css" />
+    <script type="text/javascript" src="../../bundles/base/common.bundle.js"></script>
+    <script type="text/javascript" src="../../bundles/base/anywhere-sso.bundle.js"></script>
+
+    <style type="text/css">
+        .page-message {
+            font-size: 16px;
+            padding: 40px;
+            text-align: center;
+        }
+        .app_options {
+            margin-left: -10px;
+            padding: 100px 50px 35px;
+        }
+        #anywhere-sso-title {
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        #anywhere-sso-reload-control {
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+
+<body id="myWorldApp" data-myw-anywhere-url="${anywhere_url}" data-myw-languages="${languages}">
+    <%text>
+    <div class="container">
+        <div class="app_options">
+            <div class="box page-message">
+                <div id="anywhere-sso-title"> {:anywhere_sso_title}
+                </div>
+                <div>{:anywhere_sso_instructions1}</div>
+                <div>{:anywhere_sso_instructions2}</div>
+                <div>{:anywhere_sso_instructions3}</div>
+                <div id="anywhere-sso-reload-control">
+                    <input id="anywhere-sso-reload" class="login-sign-in-btn" type="button" onclick="javascript: window.location = $('body').data('myw-anywhere-url');" autocapitalize="none" name="anywhere-sso-reload" value=""></input>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--FOOTER-->
+    <div id="footer">            
+        <div class="left"></div>
+            <div class="center content-centered">
+                <span id='built-by-footer'>{:built_by_footer}</span>
+                <img src = "../../images/logos/IQGeo_Logo_main.svg" alt = "IQGeo">
+            </div>
+            <div class="right"></div>
+            <div class='clearit'></div>            
+    </div>
+    </%text>
+
+</body>
+
+</html>

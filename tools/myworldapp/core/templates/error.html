@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />     
+        <title>Error ${code} (Not Found)</title>
+
+        <!-- Style -->
+        <link rel="shortcut icon" href="favicon.ico" />
+        
+        <!-- ensure browser doesn't use old cached js code. Version 'dev' assumes browser is disabling cache-->
+        <style type="text/css">
+            @font-face {
+                font-family: Open Sans;
+                src: url("fonts/OpenSans-Regular.woff");
+                font-weight:400;
+            }
+            @font-face {
+                font-family: Open Sans;
+                src: url("fonts/OpenSans-Semibold.woff");
+                font-weight:600;
+            }
+            @font-face {
+                font-family: Open Sans;
+                src: url("fonts/OpenSans-Bold.woff");
+                font-weight:700;
+            }
+            body {
+                font-family: "Open Sans", Arial, sans-serif;
+                bottom: 0;
+                height: auto;
+                left: 0;
+                margin: 0;
+                overflow: hidden;
+                position: absolute;
+                right: 0;
+                top: 0;
+                width: auto;
+                overflow: visible !important;
+                font-size: 12px;
+                color: #333333;
+                background-color: #eee;
+            }
+            .container {
+                text-align: center;
+                height: auto;
+                min-height: 100%;
+            }
+            .right {
+                float: right;
+            }
+
+            #logo {
+                background-image: url("images/logos/IQGeo_logo_header.svg");
+                background-repeat: no-repeat;
+                background-position: center;
+                font-size: 0;
+                height: 46px;
+                margin: 16px 10px;
+                width: 125px;
+            }
+
+            /*-----APPLICATION LINK BOXES-----*/
+            #app_options{
+                margin-left: -10px;
+                padding: 100px 50px 35px;
+            }
+            .box {
+                background-color: #fbfbfb;
+                border: 1px solid #E3E3E3;
+                border-radius: 4px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+                color: #000000;
+                display: inline-block;
+            }
+            /*-----MESSAGE-----*/
+            .page-message {
+                font-size: 16px;
+                padding: 75px;
+                text-align: center;
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <!--LOGO-->
+            <a  id="logo" href = "index" class="right">IQGeo</a>
+
+            <!--APPLICATION LINKS-->
+            <div id = "app_options">
+                <div class="box page-message">
+                    <div>
+                        <h2>Error ${code}</h2>
+                        % if code == '404':
+                        <p>The requested URL could not be found.
+                        % else:
+                        <p>${explanation}</p>
+                        % endif
+                    </div>
+					% if stack:
+					<div>${stack}</div>
+					% endif
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

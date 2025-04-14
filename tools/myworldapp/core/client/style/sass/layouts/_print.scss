@@ -1,0 +1,236 @@
+@import '../components/_index';
+
+@font-face {
+    font-family: Open Sans;
+    src: url('fonts/OpenSans-Regular.woff');
+    font-weight: 400;
+}
+@font-face {
+    font-family: Open Sans;
+    src: url('fonts/OpenSans-Semibold.woff');
+    font-weight: 600;
+}
+@font-face {
+    font-family: Open Sans;
+    src: url('fonts/OpenSans-Bold.woff');
+    font-weight: 700;
+}
+
+html,
+body {
+    height: 100%;
+}
+header nav,
+footer {
+    display: none;
+}
+body {
+    font-family: 'Open Sans', Arial, sans-serif;
+    font-size: 13px;
+    color: #333333;
+    overflow: auto;
+    background-color: #eee;
+}
+pre {
+    font-family: inherit;
+    white-space: pre-wrap;
+}
+
+tr {
+    height: 25px;
+}
+
+textarea,
+input.text,
+select {
+    font-family: inherit;
+    font-size: 12px;
+    width: 100%;
+    color: #555555;
+    padding: 3px;
+}
+
+textarea,
+input.text,
+select {
+    border: 1px solid #cccccc;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    border-radius: 4px;
+}
+
+option {
+    padding-left: 3px;
+}
+
+.main-wrapper {
+    float: left;
+}
+
+.left-content {
+    width: 400px;
+    height: 100%;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    position: absolute;
+}
+
+.right-content {
+    height: 100%;
+    position: absolute;
+    left: 400px;
+    margin-top: 25px;
+}
+
+.print-control {
+    margin-top: 25px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.centered {
+    margin-left: auto;
+    margin-right: auto;
+}
+.ui-widget {
+    font-family: inherit;
+}
+
+#print_map_canvas {
+    border: 2px solid #999999;
+}
+
+.page-size {
+    border-color: 1px solid #999999;
+    background-color: #ffffff;
+}
+
+.button-container {
+    display: none;
+}
+
+.map-section {
+    height: 100%;
+}
+
+#print-page-header {
+    margin-top: 10px;
+    position: relative;
+    height: 0.35in;
+}
+
+#print-page-footer {
+    padding-top: 10px;
+    position: relative;
+}
+
+.text-area-row textarea {
+    resize: vertical;
+}
+
+#print-preview-rows td {
+    padding-bottom: 25px;
+}
+.internalsMap-large {
+    height: 100%;
+    border-right: 1px solid #999;
+}
+.internalsMap-buttons {
+    display: none;
+}
+.viewContainerLabel {
+    font-size: 1.2em;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    z-index: 20;
+    background-color: #ffffff;
+    padding: 1.5px 8px;
+    border: 2px solid #aaa7a7;
+    border-radius: 3px;
+}
+
+/******* location *********/
+.left {
+    left: 0;
+    position: absolute;
+    display: inline-block;
+}
+
+.right {
+    right: 0;
+    position: absolute;
+    display: inline-block;
+}
+.center {
+    position: absolute;
+    display: inline-block;
+}
+/******* text-align *********/
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+.text-center {
+    text-align: center;
+}
+
+/************************************/
+/*** Print Media style ***/
+/************************************/
+@media print {
+    header nav,
+    footer {
+        display: none;
+    }
+
+    @page {
+        margin-bottom: -2in;
+        margin-right: 0;
+        margin-left: 0;
+        margin-top: 0.25in;
+        size: auto;
+    }
+    body {
+        background-color: white;
+    }
+
+    .main-wrapper {
+        width: auto !important;
+    }
+
+    .page-size {
+        border: none !important;
+    }
+
+    .left-content {
+        display: none;
+    }
+
+    .right-content {
+        width: auto;
+        height: auto;
+        left: 0;
+    }
+
+    //Hide zoomslider, basemap selector, zoom level, mouseposition (but leave overview map and scale bar)
+    .ol-zoom,
+    .ol-zoomslider,
+    .ol-zoomslider-thumb,
+    .ol-zoom-in,
+    .ol-zoom-out,
+    .myw-zoom-level,
+    .myw-mouse-position,
+    .myw-basemap-selector {
+        display: none;
+    }
+
+    /******** hide Google attribution ******/
+    .gmnoprint,
+    .gm-style-cc {
+        display: none;
+    }
+}

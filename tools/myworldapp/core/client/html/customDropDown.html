@@ -1,0 +1,14 @@
+<script type="text/template" id="custom-enum-field-template">
+    <div class="custom-dropdown-button">
+           <input class="text ui-input no-free-text" value="<%=selectedOption%>" name="sharing">
+           <span class="ui-icon ui-icon-triangle-1-s"></span>
+       </div>
+</script>
+
+<script type="text/template" id="custom-enum-list-template">
+    <ul class="custom-enum-list hidden">
+       <%options.forEach(function(option) {%>
+           <li name="<%=option.value%>"><div><%=option.value%></div></li>
+       <%});%>
+       </ul>
+</script>

@@ -1,0 +1,22 @@
+<div id="feature-header">
+    <div
+        class="content-centered panel-header <%if (masterView) {%>panel-header-master-mode<%}%> noselect"
+    >
+        <% if (myw_short_description) { %>
+        <div class="feature-title panel-title"><%- myw_title %></div>
+        <div class="panel-subtitle"><%- myw_short_description %></div>
+        <% } else { %>
+        <div class="feature-title panel-title extra-line-height"><%- myw_title %></div>
+        <% } %> <% if (myw_delta_description) { %>
+        <div class="feature-title panel-subtitle">[<%- myw_delta_description %>]</div>
+        <% }%> <%if (masterView) {%>
+        <span class="master-layer-icon" title="{:master_layer}"></span>
+        <%}%>
+        <div class="toggle-defaults"><div class="toggle-defaults-btn"></div></div>
+    </div>
+</div>
+<div id="attributes-detail"></div>
+
+<script type="text/template" id="attributes-list-template">
+    <div class="tbl-details left-panel-centered" />
+</script>

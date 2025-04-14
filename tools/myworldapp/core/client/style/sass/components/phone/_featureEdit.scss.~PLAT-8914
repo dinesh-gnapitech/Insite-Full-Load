@@ -1,0 +1,25 @@
+.panel-header,
+#feature-editor .panel-header {
+    padding: 12px;
+}
+.feature-edit-actions {
+    display: flex;
+    flex-flow: row wrap;
+    padding: 0;
+
+    button {
+        flex: 1 auto;
+        margin: 0;
+        border-radius: 0;
+        border-right: 0;
+    }
+    .message-container {
+        flex: 1 100%;
+        .alert-message {
+            margin: 0;
+        }
+    }
+    .ui-button-text {
+        padding: 1em;
+    }
+}

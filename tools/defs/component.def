@@ -1,0 +1,53 @@
+{
+    "datasource": "myworld",
+    "name": "component",
+    "external_name": "component",
+    "title": " component",
+    "short_description": null,
+    "track_changes": true,
+    "versioned": false,
+    "editable": {
+        "insert_from_gui": false,
+        "update_from_gui": false,
+        "delete_from_gui": false
+    },
+    "fields": [
+        {
+            "name": "asset_id",
+            "external_name": "Asset ID",
+            "key": true,
+            "type": "string(64)"
+        },
+        {
+            "name": "wo_id",
+            "external_name": "Workorder ID",
+            "type": "string(64)"
+        },
+        {
+            "name": "wo_number",
+            "external_name": "Workorder Number",
+            "type": "string(64)"
+        },
+        {
+            "name": "component",
+            "external_name": "Component",
+            "type": "string(64)"
+        },
+        {
+            "name": "problem",
+            "external_name": "Problem",
+            "type": "string(64)"
+        },
+        {
+            "name": "condition",
+            "external_name": "Condition",
+            "type": "date"
+        },
+        {
+            "name": "comments",
+            "external_name": "Comments",
+            "type": "string(64)"
+        }
+    ],
+    "queries": []
+}

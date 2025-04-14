@@ -1,0 +1,374 @@
+.style-form td {
+    overflow: visible !important;
+}
+.style-input {
+    display: inline-block;
+    font-size: 13px;
+    height: 20px;
+    width: 140px;
+    overflow: hidden;
+    vertical-align: -5px;
+}
+#stylePickerDialog .modal-body {
+    min-height: 250px;
+}
+#stylePickerDialog .modal-footer {
+    text-align: left;
+}
+.input-group {
+    position: relative;
+    display: table;
+    border-collapse: separate;
+}
+.input-group-addon {
+    padding: 6px;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1;
+    color: #555;
+    text-align: center;
+    background-color: #eee;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-left: 0;
+    border-radius: 0 4px 4px 0;
+    vertical-align: middle;
+}
+.input-group .form-control:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-right: -4px;
+}
+div#point-style-config {
+    margin-top: 10px;
+}
+#point-style-config table {
+    margin-left: 40px;
+    margin-bottom: 20px;
+}
+.point-style-type label {
+    font-size: 13px;
+    font-weight: bold;
+}
+#point-bitmap input {
+    width: 340px;
+}
+#point-bitmap-anchor input {
+    width: 50px;
+}
+
+#point-bitmap-size-row label,
+#point-size-row label,
+.line-size-row label,
+#text-size-row label {
+    display: inline-block;
+}
+#point-bitmap-size-row input[type='text'],
+#point-size-row input[type='text'],
+.line-size-row input[type='text'],
+#text-size-row input[type='text'] {
+    width: 50px;
+}
+#stylePickerDialog input[type='radio'] {
+    margin: 0 6px 0 10px;
+    vertical-align: -1.5px;
+}
+/*Bootstrap dropdown menu styles since our version of Bootstrap did not have them*/
+.dropdown-menu > li {
+    list-style: none;
+    display: block;
+    padding: 3px 20px;
+    clear: both;
+    font-weight: 400;
+    line-height: 2;
+    color: #333;
+    white-space: nowrap;
+    height: 25px;
+}
+.dropdown-menu > li:hover,
+.dropdown-menu > li:focus {
+    text-decoration: none;
+    background-color: #f5f5f5;
+}
+.dropdown-menu > li > span {
+    width: 90px;
+    overflow: hidden;
+    display: inline-block;
+}
+.input-dropdown {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
+    border-radius: 4px;
+    padding: 4px 6px;
+    line-height: 20px;
+    height: 20px;
+    width: 206px;
+    position: relative;
+}
+#point-style-symbol-selected,
+.line-style-pattern-selected {
+    padding-left: 4px;
+    width: 90%;
+    padding-right: 4px;
+    display: inline-block;
+}
+/*End of dropdown styles*/
+
+.picked-colour-blob {
+    width: 90%;
+    height: 14px;
+    display: inline-block;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 5px;
+    vertical-align: text-top;
+}
+/*Colour picker input element created using Bootstrap input groups*/
+.picked-colour-container {
+    width: 90%;
+    height: 14px;
+    display: inline-block;
+    border-radius: 4px;
+    margin-right: 5px;
+    vertical-align: text-top;
+    position: relative;
+}
+.picked-colour-container > .picked-colour-blob {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+#fill-style-colour-picker {
+    width: 200px;
+}
+.input-group input {
+    border-bottom-right-radius: inherit;
+    border-top-right-radius: inherit;
+}
+
+.emulate-input {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px 0 0 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    display: inline-block;
+    height: 20px;
+    padding: 4px 6px;
+    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
+    width: 140px;
+    line-height: 20px;
+}
+.in-emulate-input {
+    display: inline-block;
+}
+.emulate-input-addon {
+    border-color: #ccc;
+    border-radius: 0 4px 4px 0;
+    border-style: solid solid solid none;
+    border-width: 1px 1px 1px 0;
+    height: 28px;
+    width: 28px;
+    display: inline-block;
+    vertical-align: bottom;
+}
+.icon-pencil {
+    background: url('../../images/pen.png') no-repeat scroll 0 0 #eee;
+    background-position: center;
+}
+/*End of colour picker input styles*/
+
+.select-justification {
+    width: 100px;
+    margin-right: 13px;
+}
+.offset-justification {
+    width: 50px;
+    margin-left: 6px;
+}
+#text-border-width input {
+    width: 50px;
+    margin-right: 6px;
+}
+
+.layer-edit-field-feature-polygon-style > span {
+    width: 90px;
+    display: inline-block;
+    overflow: hidden;
+    line-height: 15px;
+}
+
+.solid-line {
+    width: 100px;
+    border-bottom: 3px solid;
+    display: inline-block;
+    margin-bottom: 3px;
+}
+.dot-line {
+    width: 100px;
+    border-bottom: 3px dotted;
+    display: inline-block;
+    margin-bottom: 3px;
+}
+.dash-line {
+    width: 100px;
+    border-bottom: 3px dashed;
+    display: inline-block;
+    margin-bottom: 3px;
+}
+.longdash {
+    border-bottom: 3px solid;
+    display: inline-block;
+    margin-right: 6px;
+    width: 25px;
+    border-bottom-color: inherit;
+    vertical-align: 3px;
+}
+.dot {
+    border-bottom: 3px solid;
+    display: inline-block;
+    margin-right: 6px;
+    width: 3px;
+    border-bottom-color: inherit;
+    vertical-align: 3px;
+}
+.shortdash {
+    border-bottom: 3px solid;
+    display: inline-block;
+    margin-right: 1px;
+    width: 6px;
+    border-bottom-color: inherit;
+    vertical-align: 3px;
+}
+.dropdown-menu > li > .arrow-none,
+.dropdown-menu > li > .arrow-right,
+.dropdown-menu > li > .arrow-left {
+    width: 40px;
+}
+.arrow-right {
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 8px solid;
+    display: inline-block;
+    vertical-align: sub;
+}
+.arrow-left {
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid;
+    display: inline-block;
+    vertical-align: sub;
+}
+.arrow-none {
+    width: 40px;
+    border-bottom: 3px solid;
+    display: inline-block;
+    vertical-align: 2.5px;
+}
+.arrow-tail {
+    border-bottom: 3px solid;
+    display: inline-block;
+    margin-bottom: 3.5px;
+    width: 30px;
+}
+.arrow-end,
+.arrow-begin {
+    line-height: normal;
+    vertical-align: middle;
+}
+/*#arrow-begin-style-symbol li > span, #arrow-end-style-symbol span {
+    width: 40px;
+}*/
+.layer-edit-field-feature-polygon-style {
+    vertical-align: -7px;
+    height: 20px;
+    padding-top: 2px;
+}
+.polygon-rep-container,
+.label-rep-container {
+    width: 70px;
+    height: 13px;
+    line-height: 0 !important;
+    margin-right: 5px;
+    font-weight: bold;
+}
+.polygon-rep-container {
+    border: 1px solid transparent;
+}
+.label-rep-container {
+    border: 1px solid transparent;
+}
+.polygon-representation,
+.label-representation {
+    width: 100%;
+    height: 100%;
+}
+.label-representation {
+    display: inline;
+    vertical-align: 0;
+    padding: 0px 2px;
+}
+#stylePickerDialog {
+    overflow: visible;
+}
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    float: left;
+    min-width: 160px;
+    width: 100%;
+    padding: 5px 0;
+    margin: 2px 0 0;
+    list-style: none;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    -webkit-background-clip: padding-box;
+    -moz-background-clip: padding;
+    background-clip: padding-box;
+}
+.ui-selectmenu-button span.ui-icon {
+    right: 0.5em;
+    left: auto;
+    margin-top: -8px;
+    position: absolute;
+    top: 50%;
+}
+/**
+ * Styles for the UI on the client app
+ */
+.layer-feature-row td,
+.style-form td {
+    padding: 5px;
+}
+.style-form select {
+    height: 30px;
+}
+.style-form input[type='text'],
+.style-form select {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
+    border-radius: 4px;
+    padding: 4px 6px;
+    line-height: 20px;
+}
+textarea#label {
+    padding: 0 5px;
+}

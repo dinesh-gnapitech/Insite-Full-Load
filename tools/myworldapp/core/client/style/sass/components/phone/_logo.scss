@@ -1,0 +1,16 @@
+#logo {
+    order: 2;
+    margin-left: auto;
+}
+.logo-large {
+    background-size: 91.5px 33.34px;
+    margin: 0;
+    @include size(91.5px, 33.34px);
+}
+
+.logout-link {
+    font-size: 1.1em;
+    order: 1;
+    width: calc(100% - 112px);
+    @include text-overflow-ellipsis;
+}

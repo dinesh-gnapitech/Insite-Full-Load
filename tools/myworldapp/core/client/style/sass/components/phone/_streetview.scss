@@ -1,0 +1,28 @@
+#street-view {
+    position: absolute;
+    top: 60px;
+    bottom: 0px;
+    width: 100%;
+}
+.street-view-large {
+    z-index: 1001;
+}
+#street-view-large-container {
+    position: absolute;
+    bottom: 0;
+    top: 60px;
+    left: 0;
+    right: 0;
+}
+.overMapButton {
+    z-index: 1001;
+}
+.shrinkButton,
+.expandMoreButton,
+.shrinkHalfButton {
+    display: none;
+}
+#street-view-hideMarkersButton,
+#street-view-showMarkersButton {
+    top: 0;
+}

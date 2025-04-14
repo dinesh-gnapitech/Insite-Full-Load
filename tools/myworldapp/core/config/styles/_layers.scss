@@ -1,0 +1,43 @@
+.render-field-editor {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.available-fields {
+    .ant-list-bordered .ant-list-item {
+        padding-left: 11px;
+    }
+}
+
+.layer-group-list {
+    .ant-list {
+        min-height: 168px;
+    }
+    .ant-list-bordered .ant-list-item {
+        padding: 5px;
+    }
+    .layer-group-item {
+        .delete-row-btn {
+            width: 30px;
+            display: inline-block;
+            vertical-align: -2px;
+            i.hidden {
+                display: none !important;
+            }
+        }
+        &:hover .delete-row-btn .anticon-delete {
+            display: block !important;
+            cursor: pointer;
+        }
+        // For the last empty row in the layer group layers
+        span.ant-tag:last-child {
+            border: none;
+        }
+    }
+}
+
+.myw-layer-features-form .editable-table {
+    margin: 0 10px;
+    border-left: 1px solid #eee;
+    border-right: 1px solid #eee;
+}

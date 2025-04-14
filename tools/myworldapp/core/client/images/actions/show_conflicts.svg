@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 19.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   viewBox="0 0 40 40"
+   xml:space="preserve"
+   sodipodi:docname="show_conflicts.svg"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   width="40"
+   height="40"><metadata
+   id="metadata13"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+   id="defs11">
+	
+</defs><sodipodi:namedview
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1"
+   objecttolerance="10"
+   gridtolerance="10"
+   guidetolerance="10"
+   inkscape:pageopacity="0"
+   inkscape:pageshadow="2"
+   inkscape:window-width="1920"
+   inkscape:window-height="1017"
+   id="namedview9"
+   showgrid="false"
+   inkscape:zoom="9.8333333"
+   inkscape:cx="4.8610522"
+   inkscape:cy="12"
+   inkscape:window-x="-8"
+   inkscape:window-y="-8"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="Layer_1"
+   inkscape:pagecheckerboard="true" />
+<style
+   type="text/css"
+   id="style2">
+	.st0{fill:#F78E1E;}
+</style>
+
+<g
+   id="g5"
+   transform="matrix(0.653125,0,0,0.653125,9.6271186,9.2694915)"><g
+     id="denied"><path
+       style="fill:#ffffff;stroke-width:0.65312499;fill-opacity:1"
+       d="M 0 0 L 0 40 L 40 40 L 40 0 L 0 0 z M 20.076172 9.2695312 C 25.847184 9.2695312 30.527344 13.947737 30.527344 19.71875 C 30.527344 25.489763 25.847184 30.169922 20.076172 30.169922 C 14.305159 30.169922 9.6269531 25.489762 9.6269531 19.71875 C 9.6269531 13.947738 14.305159 9.2695312 20.076172 9.2695312 z M 20.076172 11.882812 C 15.754444 11.882812 12.240234 15.397022 12.240234 19.71875 C 12.240234 21.407731 12.788103 22.965316 13.701172 24.246094 L 24.605469 13.345703 C 23.324691 12.432634 21.767766 11.882812 20.076172 11.882812 z M 26.453125 15.193359 L 15.548828 26.091797 C 16.829606 27.004866 18.384578 27.556641 20.076172 27.556641 C 24.3979 27.556641 27.914062 24.040478 27.914062 19.71875 C 27.914062 18.029769 27.366194 16.474138 26.453125 15.193359 z "
+       transform="matrix(1.5311005,0,0,1.5311005,-14.740086,-14.192523)"
+       id="path2" /></g></g></svg>

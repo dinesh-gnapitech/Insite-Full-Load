@@ -1,0 +1,64 @@
+<script type="text/template" id="layers-tab-template">
+      <div class="navigation-bar noselect hidden">
+    <ul id="layers-actions-left" class="left">
+    	<li id="layers_edit" title="{:edit}"></li>
+    	<li id="layers_order" title="{:order_layers}"></li>
+    	<li id="layers_add" title="{:add}"></li>
+    </ul>
+    <ul id="layers-actions-right" class="right">
+    	<li id="state_save" class="hidden" title="{:save}"></li>
+    </ul>
+      </div>
+      <div id="layers-overlays-container" class="noselect">
+        	<ul id="layers-overlays" align="center" cellpadding="8px" class="sort-layers"></ul>
+        	<div id="layers_panel_message"></div>
+      </div>
+</script>
+
+<script type="text/template" id="layer-row-template">
+    <li class="overlay-button  ui-state-default layer-item-row" data-layer="<%=layer.layer_name%>">
+    	<span class="reorder-button"><img src="<%=baseUrl%>images/dragicon24x24.svg" title="{:drag_and_drop}"/></span>
+    	<span class="layer-list-delete">
+    		<img data-layer-name="<%=layer.layer_name%>" src="<%=baseUrl%>images/x.svg" title="{:remove_layer}"/>
+    	</span>
+    	<div class="layer-list-widgets"></div>
+    </li>
+</script>
+
+<script type="text/template" id="layer-group-template">
+    <li class="overlay-button ui-state-default layer-group-row" data-layer="group_<%=layer_name%>">
+    	<div class="relative">
+    		<%if (thumbnail) {%><span class="layer-thumbnail"><img src="<%=thumbnail%>"/></span><%}%>
+    		<span class="overlay-button-name"><label title="<%=description%>"><%=display_name%></label></span>
+    		<span class="expandLayerGroup"></span>
+    		<span class="group-checkbox">
+    			<input type="checkbox" id="<%=layer_name.replace(' ', '_')%>" overlay_name="<%=layer_name%>" class="layer-group-select checkbox" <%if (turned_on) {%>checked<%}%>/>
+    		</span>
+    		<span class="reorder-button"><img src="<%=baseUrl%>images/dragicon24x24.svg" title="{:drag_and_drop}"/></span>
+    		<span class="layer-list-delete">
+    			<img data-layer-name="<%=layer_name%>" src="<%=baseUrl%>images/x.svg" title="{:remove_layer}"/>
+    		</span>
+    	</div>
+    	<ul class="sub-layer-container noStyleList hidden"></ul>
+    </li>
+</script>
+
+<script type="text/template" id="layer-template">
+    <div class="layer-title-container">
+    	<%if (thumbnail) {%><span class="layer-thumbnail"><img src=<%=thumbnail%> class="rounded5" /></span><%}%>
+    	<span class="overlay-button-name"><label title="<%= tooltip%>"><%-layerItem.layerDef.display_name || layerItem.layerDef.name%></label></span>
+    	<span class="invalid-layer-icon" title="{:invalid_layer}"></span>
+    	<%if (viewMode === "master") {%>
+    		<span class="master-layer-icon" title="{:master_layer}"></span>
+    	<%}%>
+    	<%if (isExpandable) {%>
+    		<span class="expandWidgetGroup"></span>
+    	<%}%>
+    </div>
+    <span class="layer-widget-container hidden"></span>
+</script>
+
+<script type="text/template" id="checkbox-template">
+    <input type="<%if (isExclusive) {%>radio<% } else {%>checkbox<%}%>" overlay_name="<%=layer.layer_name%>" class="<%=type%> checkbox" <%if (layer.turned_on) {%>checked<%}%> <%if (isExclusive) {%>name="<%=inputName%>"<%} %> />
+    <div class="checkbox-mask"></div>
+</script>

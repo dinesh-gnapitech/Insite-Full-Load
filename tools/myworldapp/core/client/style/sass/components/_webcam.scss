@@ -1,0 +1,22 @@
+#take_photo {
+    background: url('#{$path-to-img}camera.svg') no-repeat scroll center $color-action-icons;
+    height: 40px;
+    width: 40px;
+    margin: 10px auto;
+}
+#preview_actions span {
+    display: inline-block;
+    background-size: 40px 40px;
+    width: 40px;
+    height: 40px;
+    margin: 10px;
+}
+#retake_photo {
+    background: url('#{$path-to-img}retake.svg') no-repeat scroll center $color-action-icons;
+    left: calc(50% - 120px);
+}
+#select_photo {
+    background: url('#{$path-to-img}check.svg') no-repeat scroll center $color-action-icons;
+    position: absolute;
+    left: calc(50% - 30px);
+}

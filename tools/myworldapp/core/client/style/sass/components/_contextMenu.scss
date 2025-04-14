@@ -1,0 +1,24 @@
+.ol-ctx-menu-container {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 0px;
+    padding-right: 0px;
+    font-size: inherit;
+    .ol-ctx-menu-icon {
+        border-left-width: 15px;
+        background-size: 15px;
+        background-position: 10px;
+        padding-left: 15px;
+        &:hover {
+            background-color: #f4f4f4;
+            color: black;
+        }
+    }
+}
+
+.ol-ctx-menu-separator {
+    background-color: #ccc;
+    hr {
+        background-image: none;
+    }
+}

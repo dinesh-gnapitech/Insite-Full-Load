@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>IQGeo Login</title>
+
+    <link rel="apple-touch-icon" href="images/logos/apple-touch-icon.ico" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="bundles/styles/myWorld-client.bundle.css" />
+    <link rel="stylesheet" type="text/css" href="style/home.css" />
+    <script type="text/javascript" src="bundles/base/common.bundle.js?${myworld_version}"></script>
+    <script type="text/javascript" src="bundles/base/login.bundle.js?${myworld_version}"></script>
+
+</head>
+
+<body id="myWorldApp" data-myw-login-info="${login_info}" data-myw-languages="${languages}">
+    <%text>
+    <script type="text/template" id="login-field-template">
+        <div id="login-<%= label %>">
+    <label for="login-<%= id %>"><%= translatedLabel %></label>
+    <input class="login-input" id="login-<%= id %>" type="<%= type %>" autocapitalize="none" name="<%= id %>"></input>
+    </div>
+    </script>
+    <script type="text/template" id="login-control-template">
+        <div id="login-<%= label %>-control">
+            <input id="login-<%= id %>" class="login-sign-in-btn" type="<%= type %>" onclick="javascript: form.action='./<%= action %>';" autocapitalize="none" name="<%= id %>" value="<%= translatedLabel %>">
+        </div>
+    </script>
+
+    <script type="text/template" id="login-page-template">
+        <div class="container">
+            <div id="logo" class="logo-large right" style="display: block;"></div>
+            <div class="clearit"></div>
+            <div class = "text-center">
+                <form id="login" action="./auth?redirect_to=<%- redirect_to %>&params=<%- params %>" method="post">
+                    <div id="login-banner">{:banner}</div>
+
+                    <span id="login-fields"></span>
+                    <%if(message) { %>
+                        <p id="login_message"><%= message %><p>
+                    <% }%>
+                <div><input id="login-submission" class="login-sign-in-btn" type="submit" value=""></div>
+                <hr id="login-controls-separator" style="display: none">
+                <p id='login-or-sign-in-with'></p>
+                <span id="login-controls"></span>
+                </form>
+            </div>
+        </div>
+        <!--FOOTER-->
+        <div id="footer">            
+            <div class="left"></div>
+                <div class="center content-centered">
+                    <span id='built-by-footer'></span>
+                    <img src = "images/logos/IQGeo_Logo_main.svg" alt = "IQGeo">
+                </div>
+                <div class="right"></div>
+                <div class='clearit'></div>            
+        </div>
+    </script>
+    </%text>
+
+</body>
+
+</html>

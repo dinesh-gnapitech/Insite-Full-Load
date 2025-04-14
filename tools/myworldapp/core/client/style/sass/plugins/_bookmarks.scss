@@ -1,0 +1,184 @@
+#create-bookmark,
+#link-panel {
+    display: none;
+    width: 450px;
+}
+
+.bookmarkDetail {
+    .field-row {
+        display: inline-block;
+        label {
+            margin-right: 10px;
+        }
+    }
+}
+
+.bookmarkImg {
+    vertical-align: baseline;
+}
+#bookmark-name {
+    width: 200px;
+}
+.bookmark-item:not(.selectedBookmark):hover,
+.newFeature:hover {
+    background: #f6f6f6 50% 50% repeat-x;
+    color: $color-link-font;
+    cursor: pointer;
+}
+.bookmark_edit {
+    float: right;
+    padding-top: 4px;
+}
+.bookmark-title {
+    color: #808080;
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 10px;
+    padding: 3px 7px;
+}
+.bookmarkDetail {
+    margin-top: 10px;
+    white-space: nowrap;
+}
+.ui-menu-item {
+    list-style: none;
+}
+.selectedBookmark {
+    padding: 15px;
+
+    .bookmarkImg {
+        vertical-align: top;
+        margin-top: 12px;
+        display: inline-block;
+    }
+    &:not(:first-child) {
+        border-top: $border-light;
+    }
+    &:not(:last-child) {
+        border-bottom: $border-light;
+    }
+
+    .ui-form {
+        display: inline-block;
+    }
+}
+.savedBookmark {
+    color: $color-link-font;
+}
+.inputBookmarkName input {
+    width: 195px;
+}
+.bookmark-item .inputBookmarkName {
+    margin-top: 12px;
+}
+#bookmark-list-accordion li,
+.newFeature {
+    padding: 5px 15px;
+    line-height: 1.5;
+    margin: 0 -1em;
+}
+#bookmark-list-accordion {
+    display: none;
+    min-width: 200px;
+
+    img {
+        padding-right: 3px;
+    }
+
+    .ui-accordion-content {
+        padding: 0em;
+        background: transparent;
+    }
+
+    .ui-accordion-header {
+        color: #808080 !important;
+        font-size: 13px;
+
+        .ui-accordion-header-icon {
+            top: 46%;
+        }
+    }
+}
+#bookmark_dialog_message > img {
+    vertical-align: middle;
+}
+#bookmark-search {
+    background: url('#{$path-to-img}config-text-search.png') no-repeat 2px 0.5px
+        $color-light-background;
+    border: 1px solid #cccccc;
+    margin: 10px 0 7px;
+    padding-left: 25px !important;
+    width: 60%;
+}
+.checkboxField > input {
+    margin-left: 8px;
+    margin-right: 4px;
+}
+
+.bookmarkActions .button {
+    margin: 10px 3px 8px;
+}
+.bookmarkEditActions > span {
+    margin-right: 5px;
+}
+.listBookmarkName {
+    width: 200px;
+    word-wrap: break-word;
+}
+
+.bookmark-list-header {
+    background: none repeat scroll 0 0 $color-dark-background;
+    border-bottom: 1px solid #cccccc;
+    font-weight: bold;
+    padding: 10px 0 10px 10px;
+    position: absolute;
+    top: 0;
+    width: 92.5%;
+    z-index: 1;
+}
+.bookmarkDetail > span:not(:first-child) {
+    margin-left: 5px;
+}
+.bookmarkZoom select {
+    vertical-align: 0;
+}
+
+.action_bookmarkZoom {
+    background: url('#{$path-to-actions-img}zoom.svg') no-repeat;
+}
+.action_bookmarkUpdateLocation {
+    background: url('#{$path-to-actions-img}location.svg') no-repeat;
+}
+.action_bookmarkZoom,
+.action_bookmarkUpdateLocation {
+    background-color: $color-action-icons;
+    background-position: center;
+    display: inline-block;
+    vertical-align: -10px;
+    border: none;
+    height: 34px;
+    width: 34px;
+    cursor: pointer;
+    &.inactive {
+        cursor: auto;
+        background-color: $color-action-icons-inactive;
+    }
+    &:not(.inactive):not(.no-hover):hover {
+        box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.1) 0 1px 0;
+        border-radius: $border-radius-circle;
+    }
+}
+
+.bookmarkLat input,
+.bookmarkLng input {
+    display: inline-block;
+    width: 75px;
+}
+.bookmarkBrief {
+    white-space: nowrap;
+
+    .checkboxField {
+        display: inline-block;
+    }
+}

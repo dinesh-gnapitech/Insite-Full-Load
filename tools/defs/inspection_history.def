@@ -1,0 +1,58 @@
+{
+    "datasource": "myworld",
+    "name": "inspection_history",
+    "external_name": "{:inspection_history}",
+    "title": "{display_name}: [name]",
+    "short_description": null,
+    "track_changes": true,
+    "versioned": false,
+    "editable": {
+        "insert_from_gui": false,
+        "update_from_gui": false,
+        "delete_from_gui": false
+    },
+    "fields": [
+        {
+            "name": "asset_id",
+            "external_name": "{:asset_id}",
+            "key": true,
+            "type": "string(64)"
+        },
+        {
+            "name": "inspection_type",
+            "external_name": "{:inspection_type}",
+            "type": "string(64)"
+        },
+        {
+            "name": "ins_status",
+            "external_name": "{:inspection_status}",
+            "type": "string(64)"
+        },
+        {
+            "name": "inspection_date",
+            "external_name": "{:inspection_date}",
+            "type": "date"
+        },
+        {
+            "name": "modified_by",
+            "external_name": "{:modified_by}",
+            "type": "string(64)"
+        },
+        {
+            "name": "wo_id",
+            "external_name": "{:workorder_id}",
+            "type": "string(64)"
+        },
+        {
+            "name": "wo_number",
+            "external_name": "{:workorder_number}",
+            "type": "string(64)"
+        },
+        {
+            "name": "progress_status",
+            "external_name": "{:progress_status}",
+            "type": "string(64)"
+        }
+    ],
+    "queries": []
+}

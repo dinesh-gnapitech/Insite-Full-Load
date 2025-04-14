@@ -1,0 +1,116 @@
+#internet_status_icon {
+    display: inline-block;
+    @include size(calc(100% - 3px));
+    border-radius: $border-radius-circle;
+    border: 1px solid;
+    margin: 0.5px;
+
+    &.online {
+        background-color: #5da95d;
+        border-color: #476347;
+    }
+    &.offline {
+        background-color: #ccc;
+        border-color: #868886;
+    }
+    &.datasource_error {
+        background-color: #eebf09;
+        border-color: #c89d4e;
+    }
+}
+.notification-messages-container {
+    display: none;
+    position: absolute;
+    padding: 6px 0;
+    background-color: $color-light-background;
+    border: 1px solid #ccc;
+    border-radius: $border-radius-default;
+    box-shadow: 0 1px 20px rgb(0, 0, 0);
+    max-width: 250px;
+
+    ul li {
+        padding: 9px 40px 9px 22px;
+        line-height: 18px;
+        &:not(:only-child) {
+            border-bottom: $border-lighter;
+        }
+        &.expandable {
+            cursor: pointer;
+        }
+        .selected {
+            background-color: #f6f6f6;
+        }
+        img {
+            float: right;
+            @include size(14px);
+            padding-left: 6px;
+            vertical-align: -2px;
+        }
+    }
+    > .arrow {
+        bottom: -11px;
+        margin-left: -11px;
+        border-top-color: rgba(0, 0, 0, 0.25);
+        border-bottom-width: 0;
+
+        &:after {
+            bottom: 1px;
+            margin-left: -10px;
+            content: ' ';
+            border-top-color: $color-light-background;
+            border-bottom-width: 0;
+        }
+    }
+}
+.error-reason {
+    padding-top: 5px;
+}
+li .error-reason {
+    display: none;
+}
+li.selected .error-reason {
+    display: block;
+}
+.error-desc {
+    padding-right: 22px;
+    background-image: url('#{$path-to-img}alert.svg');
+    background-repeat: no-repeat;
+    background-position: right top;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover {
+        color: $color-link-font;
+    }
+}
+.selected .error-desc {
+    font-weight: bold;
+    white-space: normal;
+}
+.status-list {
+    &:not(:first-child) {
+        //Show a border only if there is a header in the popup
+        border-top: $border-lighter;
+    }
+    max-height: 300px;
+    overflow-y: auto;
+}
+.status-header {
+    position: relative;
+    padding: 2px 33px 7px 10px;
+    font-weight: bold;
+    color: #666666;
+    font-size: 1.15em;
+}
+.close-btn {
+    border: none;
+    @include background-with-image('#{$path-to-img}x.svg');
+    background-size: 10px 10px;
+    display: inline-block;
+    position: absolute;
+    right: 8px;
+    top: 2px;
+    @include size(20px);
+}

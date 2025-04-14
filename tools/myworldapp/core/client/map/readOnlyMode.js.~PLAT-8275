@@ -1,0 +1,89 @@
+// Copyright: IQGeo Limited 2010-2023
+import MapInteractionMode from './mapInteractionMode';
+
+export class ReadOnlyMode extends MapInteractionMode {
+    static {
+        this.mergeOptions({
+            clearSelection: true,
+            fireAppEvents: true
+        });
+    }
+
+    /**
+     * Map interaction mode that doesn't process any interactions from the user.
+     * This is used instead of MapInteractionMode as that still allows the selection of features using the ctrl dragbox
+     * @param  {MapControl}  map map to handle user events on
+     * @param  {Application|Control} owner Control
+     * @constructs
+     * @extends {MapInteractionMode}
+     */
+    constructor(map, options) {
+        super(map);
+        this.setOptions(options);
+    }
+
+    /**
+     * Enables the mode
+     */
+    enable() {
+        super.enable();
+        //set context menu items
+        this._setContextMenuForSelectionMode(this.options.contextMenuItems); //no need to await on this. this method shouldn't be async
+    }
+
+    /**
+     * Disables the mode
+     */
+    disable() {
+        super.disable();
+        this.map.contextmenu.clear();
+    }
+
+    /**
+     * An empty click handler
+     */
+    handleMapClick(event) {}
+
+    /**
+     * Called from map control
+     */
+    handleFeatureClick(feature, rep, evt) {}
+
+    /**
+     * Called from a map interaction
+     * @returns {boolean} true returned, a drag box should be initiated
+     */
+    handleCtrlDragBoxStart() {
+        return false;
+    }
+
+    /**
+     * Handles a ctrl+mousedrag box on the map
+     */
+    async handleCtrlDragBox(event) {}
+
+    /**
+     * Configures the map's context menu
+     * The context menu is brought up by a right click or long touch
+     * @params {Array<object>} [items] Check https://github.com/jonataswalker/ol-contextmenu for instruction on usage
+     * @private
+     */
+    async _setContextMenuForSelectionMode(items) {
+        await this.app.ready; //to ensure actions from plugins have been set?
+        // before set the menu, ensure self is current interaction mode after waited the promise
+        if (!this.isEnabled()) return;
+
+        if (!items) {
+            const actions = this.app.options.mapContextMenuActions || [];
+            this.buildActionMenuItems(actions); //Sets this.menuItems
+        } else {
+            this.menuItems = items;
+        }
+
+        const menu = this.map.contextmenu;
+        menu.clear();
+        this.menuItems.forEach(item => menu.push(item));
+    }
+}
+
+export default ReadOnlyMode;

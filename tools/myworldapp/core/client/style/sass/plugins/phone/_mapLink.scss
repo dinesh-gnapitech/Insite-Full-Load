@@ -1,0 +1,27 @@
+.map-link-phone-container {
+    display: flex;
+    justify-content: center;
+
+    > div {
+        margin: 0px 20px;
+    }
+}
+
+.map-link-box {
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    margin-bottom: 10px;
+}
+
+.map-link-header {
+    padding: 2px 5px;
+    color: #949494;
+    font-weight: 600;
+    border-bottom: 1px solid #e4e4e4;
+    background-color: rgba(249, 249, 249, 0.88);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    div {
+        display: inline-block;
+    }
+}

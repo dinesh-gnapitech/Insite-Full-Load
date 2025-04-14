@@ -1,0 +1,203 @@
+// Copyright: IQGeo Limited 2010-2023
+import $ from 'jquery';
+import { sortBy } from 'underscore';
+import { Dropdown } from 'myWorld/uiComponents';
+import { FieldEditor } from './fieldEditor';
+
+/**
+ * Input for fields with an enumerator specified. <br/>
+ * Displayed as either a dropdown (option element) or as buttons
+ * @name EnumeratorFieldEditor
+ * @constructor
+ * @extends {FieldEditor}
+ */
+export class EnumeratorFieldEditor extends FieldEditor {
+    static {
+        this.mergeOptions({
+            limitForExpanded: 6 //May show expanded mode (buttons) if there are less items than this number in the picklist
+        });
+
+        this.prototype.events = {
+            ...FieldEditor.prototype.events,
+            'click li': 'selectItem' //expanded mode
+        };
+    }
+
+    constructor(owner, feature, fieldDD, options) {
+        super(owner, feature, fieldDD, options);
+        this.initialEnumValues = fieldDD.enumValues;
+        this.enumValues = this.initialEnumValues; //when catalogue, restrictions may be applied later on in updateFor()
+        this._onChange = this._onChange.bind(this);
+
+        const enumLength = fieldDD.enumValues.length;
+        //expandedMode renders a set of buttons with the picklist items
+        this.expandedMode =
+            enumLength > this.options.limitForExpanded ? false : options.expandedMode;
+
+        this.initUI();
+        this.render();
+    }
+
+    initUI() {
+        //This method can be invoked twice
+        //in situations where expandedMode editor does not fit the available space
+        this.setElement(
+            this.expandedMode
+                ? $('<ul>', { class: 'focused-select-menu', type: 'text' })
+                : $('<div>')
+        );
+    }
+
+    render() {
+        if (!this.enumValues) return; //super constructor call. will be called later in own constructor
+
+        if (this.expandedMode) {
+            this.renderExpanded();
+            return;
+        }
+        const options = this.enumValues.map(item => {
+            return {
+                id: item.value,
+                label: item.display_value
+            };
+        });
+        this.control = new Dropdown({
+            options,
+            selected: this.getValue(),
+            onChange: this._onChange,
+            allowClear: !this.required,
+            readonly: this._isReadonly
+        });
+        this.$el.html(this.control.el);
+    }
+
+    /**
+     * Find out if there is enough room for the expanded mode in the window
+     * @return {boolean} True if there is enough room for the expanded mode else False
+     */
+    willExpandedModeFit() {
+        const availableWidth = $(window).width() / 2;
+        const list = $('<li>', { class: this.$el.prop('class') }).html(this.$el.html());
+        list.appendTo('body');
+        const fieldWidth = list.outerWidth();
+        list.remove();
+        return fieldWidth < availableWidth;
+    }
+
+    /**
+     * Render a button-set and select the one with the fieldValue
+     */
+    renderExpanded() {
+        this.$el.empty();
+        this.initialEnumValues.forEach(enumValue => {
+            const listItem = $('<li>').text(enumValue.display_value);
+
+            if (!this.enumValues.includes(enumValue)) listItem.addClass('disabled');
+            else if (enumValue.value == this.fieldValue) listItem.addClass('selected');
+
+            this.$el.append(listItem);
+        });
+
+        if (!this.willExpandedModeFit()) {
+            this.expandedMode = false;
+            this.initUI();
+            this.render();
+        }
+    }
+
+    /**
+     * Handler for expanded mode buttons
+     * Styles and stores the selected list-element
+     * updates this.fieldValue
+     * @param  {object} ev Backbone event
+     */
+    selectItem(ev) {
+        if (this._isReadonly) return;
+        const currentlySelected = this.$('li.selected');
+        currentlySelected.removeClass('selected'); // un-select the previously selected value
+
+        if ($(ev.currentTarget)[0] === currentlySelected[0]) {
+            //user clicked the already selected value - clear the selection
+            this.fieldValue = '';
+        } else {
+            $(ev.currentTarget).addClass('selected');
+            const selectedDisplayValue = $(ev.currentTarget).text();
+            //find chosen internal value and update fieldValue with it
+            this.fieldValue = this.fieldDD.enumValues.find(
+                enumValue => enumValue.display_value === selectedDisplayValue
+            )?.value;
+        }
+        this._changed({});
+    }
+
+    // Handler for dropdown choice change
+    _onChange() {
+        this._changed({});
+    }
+
+    getValue() {
+        // if using dropdown this.control will be set, if expanded mode, value is in this.fieldValue
+        // ensure we don't return undefined otherwise values will be ignored in checks and updates
+        return this.control?.getValue() ?? this.fieldValue ?? '';
+    }
+
+    validate(value) {
+        const missing = value === null || value === '';
+
+        if (this.required && missing) {
+            return this.msg('select_required');
+        }
+        return true;
+    }
+
+    /**
+     * Update self for changes to the state of other field editors
+     * Considers catalogues to restrict options available to user (modifies this.enumValues)
+     * @param {featureData} featureData data from the current value of other field editors
+     * @param {object} sessionVars Session variables
+     */
+    updateFor(featureData, sessionVars) {
+        if (!this.fieldDD.catalogue) return;
+        this.enumValues = this._getCatalogueCompatibleValues(featureData);
+        this.render();
+    }
+
+    /**
+     * Returns a sorted list of enumerator values that are compatible with the catalogue entries that match other fields on the same catalogue
+     * @param {featureData} featureData
+     * @private
+     */
+    _getCatalogueCompatibleValues(featureData) {
+        const catalogue = this.fieldDD.catalogue;
+        const catalogueName = this.fieldDD.catalogueName;
+        const catalogueFieldName = this.fieldDD.catalogueFieldName;
+
+        //find other fields restricted on the same catalogue. ENH: move to featureDD (which should become a class)
+        const restrictingFields = Object.values(this.feature.featureDD.fields).filter(
+            otherFieldDD =>
+                otherFieldDD.internal_name != this.fieldDD.internal_name &&
+                otherFieldDD.catalogueName == catalogueName
+        );
+
+        //find the enumerator values that are compatible with catalogue and other populated fields
+        const compatibleValues = new Set();
+        catalogue.records.forEach(catRecord => {
+            const isCompatible = restrictingFields.every(otherFieldDD => {
+                const otherFieldName = otherFieldDD.internal_name;
+                const otherFieldValue = featureData.properties[otherFieldName];
+                const catOtherFieldName = otherFieldDD.catalogueFieldName;
+                return !otherFieldValue || otherFieldValue == catRecord[catOtherFieldName]; //loose equality is used to allow integer to string conversion (in case there is a mismatch in field types)
+            });
+            if (isCompatible) compatibleValues.add(catRecord[catalogueFieldName]);
+        });
+        const _catalogCompatibleValues = this.fieldDD.enumValues.filter(enumElem =>
+            compatibleValues.has(enumElem.value)
+        );
+        return sortBy(_catalogCompatibleValues, 'display_value');
+    }
+
+    getRequiredWidth() {
+        if (this.expandedMode) return this.$el.width();
+    }
+}
+export default EnumeratorFieldEditor;

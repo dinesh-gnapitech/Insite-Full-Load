@@ -1,0 +1,27 @@
+.myw-basemap-selector {
+    display: none; /*to hide the basemap control--*/
+}
+.ol-zoom,
+.ol-zoomslider,
+.ol-zoomslider-thumb {
+    display: none;
+}
+
+.ol-attribution {
+    display: block;
+    font-size: 10px;
+    box-shadow: none;
+    background: hsla(0, 0%, 100%, 0.7);
+    margin: 0;
+    padding: 0 5px;
+    a {
+        color: #333;
+    }
+    button {
+        display: none;
+    }
+}
+
+.myw-rotate-button {
+    bottom: 50px;
+}

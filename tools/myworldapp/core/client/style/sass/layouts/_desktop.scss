@@ -1,0 +1,32 @@
+@import '../components/_index';
+/*
+ * === MEDIA QUERIES FOR SCREEN SIZES LOWER THAN 1025px ===
+ */
+@media screen and (max-width: 1025px) {
+    #text-search {
+        width: 170px;
+    }
+}
+
+//Adding it here since it is used in multiple components
+.master-layer-icon {
+    background: url(#{$path-to-img}master-layer.svg) no-repeat center transparent;
+    background-size: 16px;
+    @include size(16px);
+    position: absolute;
+    right: 45px;
+    top: 50%;
+    margin-top: -8px;
+}
+/*
+ * === EAST PANEL ===
+ */
+#extra-right-content {
+    background-color: $color-light-background;
+    height: 100%;
+    position: relative;
+}
+
+.leaflet-grab.leaflet-interactive {
+    cursor: pointer;
+}

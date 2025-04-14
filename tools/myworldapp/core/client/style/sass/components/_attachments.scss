@@ -1,0 +1,86 @@
+.ant-upload-list-picture .ant-upload-list-item {
+    height: 48px;
+}
+
+.ant-upload-list-picture-card .ant-upload-list-item {
+    height: 85px;
+}
+
+.attachment-list {
+    margin-left: 12px;
+    margin-right: 12px;
+}
+
+.attachment-list-item {
+    &:first-child {
+        padding-top: 8px;
+    }
+    &:last-child {
+        padding-bottom: 8px;
+    }
+}
+
+.attachment-list-item .attachment-icon {
+    height: 32px;
+    width: 32px;
+    vertical-align: middle;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-right: 10px;
+    cursor: default;
+}
+
+.attachment-list-item .attachment-image {
+    border-radius: 2px;
+    padding: 1px;
+    border: $border-dark;
+    object-fit: contain;
+}
+
+.attachment-list-item .attachment-text-area {
+    display: inline-block;
+    white-space: wrap;
+}
+
+.attachment-wall {
+    margin-left: 12px;
+    margin-right: 12px;
+}
+
+.attachment-wall-item {
+    display: inline-block;
+    margin: 5px;
+    margin-right: 10px;
+}
+
+.attachment-wall-item .attachment-icon {
+    &[layout='grid'] {
+        height: 80px;
+        width: 80px;
+    }
+    &[layout='wall'] {
+        height: 64px;
+    }
+    margin-top: 2px;
+    margin-bottom: 2px;
+    object-fit: contain;
+}
+
+.attachment-wall-item .attachment-image {
+    border-radius: 3px;
+    border: $border-dark;
+    padding: 2px;
+}
+
+.attachment-wall-item .attachment-text-area {
+    margin: auto;
+    text-align: center;
+    max-width: 84px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.attachment-wall-item .feature-list-item-title {
+    cursor: pointer;
+}

@@ -1,0 +1,648 @@
+################################################################################
+# Engine for accessing a feature table, applying deltas
+################################################################################
+# Copyright: IQGeo Limited 2010-2023
+
+from sqlalchemy import exists, select, literal_column
+from myworldapp.core.server.base.core.myw_error import MywInternalError
+from .myw_feature_table import MywFeatureTable
+
+
+class MywVersionedFeatureTable(MywFeatureTable):
+    """
+    Engine for accessing a records from a feature table, applying deltas
+
+    Reads data from master table and applies 'edits' from the
+    corresponding delta table. Redirects edits to the delta table
+    """
+
+    # ==============================================================================
+    #                                RECORD ACCESS
+    # ==============================================================================
+
+    def __init__(self, view, feature_type, model, base_model, delta_model, delta, schema="data"):
+        """
+        Initialize self
+
+        View is a MywFeatureView. MODEL, BASE_MODEL and DELTA_MODEL
+        are SQLAlchemy models. DELTA is the version to return records for.
+        If SCHEMA is 'delta' only delta records are returned (and records from
+         DELTA are excluded, if specified)"""
+
+        if not delta and schema != "delta":
+            raise MywInternalError("Bad delta id:", delta)
+
+        super(MywVersionedFeatureTable, self).__init__(view, feature_type, model)
+
+        self.base_model = base_model
+        self.delta_model = delta_model
+        # Falsey delta should be None for valid SQLA filters.
+        self.delta = delta if delta else None
+        self.schema = schema
+
+    def __ident__(self):
+        """
+        String identifying self in progress messages etc
+        """
+
+        return "{}({},{})".format(self.__class__.__name__, self.feature_type, self.delta)
+
+    @property
+    def versioned(self):
+        """
+        True is self is a versioned view
+        """
+
+        return True
+
+    # ==============================================================================
+    #                                QUERY EVALUATION
+    # ==============================================================================
+
+    def getRecs(self, ids):
+        """
+        Returns records matched by self with keys IDS (where they exist)
+        """
+
+        recs = []
+
+        # Get master (unshadowed) records
+        for rec in self._master_filtered_recs().filter(self.model._key_column().in_(ids)):
+            recs.append(self._detach(rec))
+
+        # Get delta (new and shadow) records
+        for rec in self._delta_filtered_recs().filter(self.delta_model._key_column().in_(ids)):
+            recs.append(self._detach(rec))
+
+        return recs
+
+    def get(self, id):
+        """
+        Returns record with key ID (if there is one)
+        """
+
+        # Find record
+        rec = (
+            self._master_filtered_recs(batched=False).filter(self.model._key_column() == id).first()
+        )
+
+        if not rec:
+            rec = (
+                self._delta_filtered_recs(batched=False)
+                .filter(self.delta_model._key_column() == id)
+                .first()
+            )
+
+        # Return it
+        if not rec:
+            return None
+
+        return self._detach(rec)
+
+    def recs(self, offset=None, limit=None):
+        """
+        Yields records matched by self
+
+        Note: For ordered queries, results are partially ordered"""
+
+        self.progress(8, self, "Evaluate", self._filter_preds, self._filter_builders)
+
+        # Deal with defaults (preserving zero values)
+        if offset == None:
+            offset = self._filter_offset
+        if limit == None:
+            limit = self._filter_limit
+
+        # Yield inserts and updates from delta
+        self.progress(9, self, "CHECKING DELTA:", "offset=", offset, "limit=", limit)
+
+        n_recs = 0
+        for delta_rec in self._delta_filtered_recs(
+            offset=offset, limit=limit, order_by_info=self._order_by_info
+        ):
+            self.progress(
+                8, self, "DELTA REC", delta_rec, delta_rec.myw_delta, delta_rec.myw_change_type
+            )
+            delta_rec._view = self.view
+            yield delta_rec
+            n_recs += 1
+
+        # Find remaining limit
+        if limit:
+            limit -= n_recs
+            if limit <= 0:
+                return
+
+        # Compute offset for master table
+        if offset:
+            offset -= self._delta_filtered_recs().count()
+            if offset < 0:
+                offset = 0
+
+        # Yield unshadowed master records, unless schema is 'delta'
+        self.progress(9, self, "CHECKING MASTER:", "offset=", offset, "limit=", limit)
+
+        if self.schema != "delta":
+            for rec in self._master_filtered_recs(
+                offset=offset, limit=limit, order_by_info=self._order_by_info
+            ):
+                self.progress(8, self, "MASTER REC", rec)
+                yield self._detach(rec)
+
+    def count(self, limit=None):
+        """
+        Returns number of records matched by self
+        """
+
+        limit = limit or self._filter_limit
+
+        n_recs = 0
+
+        # Find matches in unshadowed master recs schema is not delta
+        if self.schema != "delta":
+            n_recs += self._master_filtered_recs(limit=limit).count()
+
+        # Find remaining limit
+        if limit:
+            limit -= n_recs
+            if limit <= 0:
+                return n_recs
+
+        # Add matches from delta
+        n_recs += self._delta_filtered_recs(limit=limit).count()
+
+        return n_recs
+
+    # ==============================================================================
+    #                               TABLE BEHAVIOUR
+    # ==============================================================================
+
+    def insert(self, feature, **opts):
+        """
+        Create record from FEATURE (a geojson.Feature, record or dict)
+
+        OPTS define data format etc of FEATURE (see .updateFromDict())
+
+        Returns record created (None if already exists)"""
+
+        # Make detached record
+        rec = self._new_detached()
+        rec.updateFrom(feature, **opts)
+
+        # If ID specified, check for already exists
+        if rec._id:
+
+            # Check for already exists (or deleted) in delta
+            delta_rec = self._deltaRec(rec._id)
+            if delta_rec:
+                if delta_rec.myw_change_type != "delete":
+                    return None
+
+                self.session.delete(delta_rec)
+                rec.myw_change_type = "update"
+
+            # Check for already exists in master
+            elif self._recs.get(rec._id):
+                return None
+
+        # Add to database (and allocate ID)
+        self.session.myw_db_driver.prepareForInsert(self.feature_type, rec)
+        self.session.add(rec)
+        self.session.flush()
+
+        rec._view = self.view
+        return rec  # can't return detached record here as it may need to be read/refreshed
+
+    def update(self, feature):
+        """
+        Update record ID with values from FEATURE (a geojson.Feature or dict)
+
+        Returns updated record (None if not found)"""
+
+        delta_rec = self._ensureDeltaRec(feature._id)
+        if delta_rec is None:
+            return None
+
+        delta_rec.updateFromRec(feature)
+        self.session.flush()
+
+        delta_rec._view = self.view
+        return delta_rec  # can't return detached record here as it may need to be read/refreshed
+
+    def updateFrom(self, id, feature, **opts):
+        """
+        Update record ID with values from FEATURE (a geojson.Feature, record or dict)
+
+        OPTS define data format etc of FEATURE (see .updateFromDict())
+
+        Returns updated record (None if not found)"""
+
+        delta_rec = self._ensureDeltaRec(id)
+        if delta_rec is None:
+            return None
+
+        delta_rec.updateFrom(feature, **opts)
+        self.session.flush()
+
+        delta_rec._view = self.view
+        return delta_rec  # can't return detached record here as it may need to be read/refreshed
+
+    def updateManyFrom(self, ids, feature_properties):
+        """
+        Update records in IDS (a collection) with values from FEATURE_PROPERTIES (a dict)
+
+        Returns count of updated records"""
+
+        # only IDs which exist in the delta table are returned.
+        ids_to_update = self._ensureDeltaRecs(ids)
+
+        key_column = self.delta_model._key_column()
+
+        update = (
+            self.delta_model.__table__.update()
+            .returning(key_column)
+            .where(key_column.in_(ids_to_update))
+            .where(self.delta_model.myw_delta == self.delta)
+            .where(self.delta_model.myw_change_type != "delete")
+            .values(feature_properties)
+        )
+        result = self.session.execute(update).fetchall()
+        # Results come back as a list of tuples, so we unpack those here.
+        return [r[0] for r in result]
+
+    def _ensureDeltaRec(self, id):
+        """
+        Finds delta record ID. If it doesn't exist creates it
+        """
+
+        # Find records
+        master_rec = self._recs.get(id)
+        delta_rec = self._deltaRec(id)
+
+        # Check for exists nowhere
+        if not master_rec and not delta_rec:
+            return None
+
+        # Check for deleted in delta
+        if delta_rec and delta_rec.myw_change_type == "delete":
+            return None
+
+        # If no delta record yet .. create one
+        if not delta_rec:
+            delta_rec = self._new_detached("update")
+            delta_rec.updateFromRec(master_rec)
+            self.session.add(delta_rec)
+
+            # Save base record (for conflict detection)
+            base_rec = self.base_model(myw_delta=self.delta)
+            base_rec.updateFromRec(master_rec)
+            self.session.add(base_rec)
+
+        return delta_rec
+
+    def _ensureDeltaRecs(self, ids):
+        """
+        If any of the IDS are not present in delta yet, we make sure they are, ready for
+        updating.
+
+        Notes:
+         - deltas marked as "deleted" are present in the delta table, so they are not re-created.
+         - ids which do not exist in master (e.g. they are new in delta) are silently ignored.
+
+        Returns: subset of IDS which do now exist in the delta table.
+        """
+
+        # 1. Exclude records which are already in delta from the cloning (but keep the ids to
+        #    include in the return value).
+        already_query = (
+            select([self.delta_model._key_column()])
+            .where(self.delta_model._key_column().in_(ids))
+            .where(self.delta_model.myw_delta == self.delta)
+        )
+
+        already_in_delta = [str(r[0]) for r in self.session.execute(already_query).fetchall()]
+
+        ids_to_clone = [id for id in ids if id not in already_in_delta]
+
+        # 2. Build and execute insert into base model (for conflict detection):
+
+        # Note: SQLAlchemy t.insert().from_select(a, b)
+        #
+        # The operation is equivalent to INSERT INTO () SELECT () in SQL, i.e. providing a table of
+        # entries to be inserted, in the form of another SQL query expression.
+        #
+        # The two params are:
+        #  `a`) a list of column names to insert into `t`.
+        #  `b`) a select query which yields the columns _in the same order_ as the list in `a`.
+        # Below, we generate `a` from `b` inline, to ensure this condition.
+
+        myw_delta_column = literal_column(f"'{self.delta}'").label("myw_delta")
+
+        clone_columns = [myw_delta_column] + list(self.model.__table__.columns)
+        base_select = select(clone_columns).where(self.model._key_column().in_(ids_to_clone))
+
+        base_table = self.base_model.__table__
+        base_insert = base_table.insert().from_select(
+            [col.name for col in clone_columns], base_select
+        )
+
+        # We don't save these IDs as we will see the same ones from the delta insert.
+        self.session.execute(base_insert)
+
+        # 3. build and execute insert into delta model:
+
+        myw_change_type_column = literal_column("'update'").label("myw_change_type")
+
+        clone_columns.append(myw_change_type_column)
+        delta_select = select(clone_columns).where(self.model._key_column().in_(ids_to_clone))
+
+        delta_table = self.delta_model.__table__
+        delta_insert = (
+            delta_table.insert()
+            .returning(self.delta_model._key_column())
+            .from_select([col.name for col in clone_columns], delta_select)
+        )
+
+        delta_result = self.session.execute(delta_insert).fetchall()
+
+        return already_in_delta + [str(r[0]) for r in delta_result]
+
+    def deleteById(self, id):
+        """
+        Delete record (or mark it as deleted)
+
+        Returns deleted record (None if not found)"""
+
+        # Find records
+        master_rec = self._recs.get(id)
+        delta_rec = self._deltaRec(id)
+
+        # Check for exists nowhere
+        if not master_rec and not delta_rec:
+            return None
+
+        # Check for already deleted in delta
+        if delta_rec and delta_rec.myw_change_type == "delete":
+            return None
+
+        # Check for new in delta (or master no longer exists)
+        if delta_rec and not master_rec:
+            self.session.delete(delta_rec)
+
+            base_rec = self._baseRec(id)
+            if base_rec:
+                self.session.delete(base_rec)
+
+            return delta_rec
+
+        # Check for not in delta yet
+        if not delta_rec:
+            delta_rec = self._new_detached("delete")
+            delta_rec.updateFromRec(master_rec)
+            self.session.add(delta_rec)
+
+            # Save base record (for conflict detection)
+            base_rec = self.base_model(myw_delta=self.delta)  # ENH: duplicated with above
+            base_rec.updateFromRec(master_rec)
+            self.session.add(base_rec)
+
+        # Mark as deleted
+        delta_rec.myw_change_type = "delete"  # ENH: Reclone?
+        self.session.flush()
+        return self._detach(master_rec)
+
+    def truncate(self):
+        """
+        Remove all records from delta
+        """
+
+        n_recs = self._delta_recs.delete()
+        self._base_recs.delete()
+        self.session.flush()
+
+        return n_recs
+
+    # ==============================================================================
+    #                                CHANGE DETECTION
+    # ==============================================================================
+
+    def featureChanges(self):
+        """
+        Changes if self's delta (as per myw_database.featureChanges()
+        """
+        # ENH: Replace by record iterator?
+
+        changes = {}
+
+        for rec in self._delta_recs:
+            changes[rec._id] = rec.myw_change_type
+
+        return changes
+
+    # ==============================================================================
+    #                                MERGE AND PROMOTE
+    # ==============================================================================
+    # ENH: Better to pass in id to these calls?
+
+    def conflictFor(self, delta_rec):
+        """
+        Conflict info for delta_rec (if any)
+
+        Returns a MywConflict (or None)"""
+
+        from .myw_conflict import MywConflict
+
+        base_rec = self._baseRec(delta_rec._id)
+        master_rec = self._recs.get(delta_rec._id)
+
+        master_change = self._changeTypeFor(base_rec, master_rec)
+
+        if not master_change:
+            return None
+
+        return MywConflict(master_change, delta_rec, master_rec, base_rec)
+
+    def _changeTypeFor(self, base_rec, rec):
+        """
+        String describing change BASE_REC -> REC (if any)
+        """
+
+        if rec and not base_rec:
+            return "insert"
+
+        if base_rec and not rec:
+            return "delete"
+
+        if not rec and not base_rec:
+            return None
+
+        fields = rec._differences(base_rec)
+
+        if fields:
+            return "update"
+
+        return None
+
+    def resolve(self, delta_rec, feature):
+        """
+        Resolve conflict for supplied feature.
+        Apply changes in FEATURE to DELTA_REC and update its base version to current state in master
+        """
+        self.progress(4, "Resolving", delta_rec)
+
+        delta_rec.updateFrom(feature)
+        rebased = self.rebase(delta_rec)
+        if rebased:
+            return
+
+        # not rebased means the record was deleted in master - resolve delete/* conflict
+        if delta_rec.myw_change_type == "update":  # delete/update conflict
+            delta_rec.myw_change_type = "insert"
+
+        elif delta_rec.myw_change_type == "delete":  # delete/delete "conflict"
+            self.session.delete(delta_rec)
+
+    def rebase(self, delta_rec):
+        """
+        Update base version of DELTA_REC to its current state in master
+        Returns True if the base record was recreated and False otherwise
+        """
+
+        # ENH: Pass in and apply delta changes to i.e. make this method resolve()
+
+        self.progress(4, "Rebasing", delta_rec)
+
+        # Delete existing base record (if there is one)
+        base_rec = self._baseRec(delta_rec._id)
+        if base_rec:
+            self.session.delete(base_rec)
+            self.session.flush()
+
+        # Create new base record ... unless deleted in master
+        master_rec = self._recs.get(delta_rec._id)
+        if master_rec:
+            base_rec = self.base_model(myw_delta=self.delta)
+            base_rec.updateFromRec(master_rec)
+            self.session.add(base_rec)
+            return True
+        else:
+            # record deleted in master
+            return False
+
+    def promote(self, delta_rec):
+        """
+        Apply change DELTA_REC to master
+        """
+
+        self.progress(4, "Promoting", delta_rec)
+
+        # Apply change to master
+        master_table = self.view.db.tables[self.feature_type]
+
+        if delta_rec.myw_change_type == "insert":
+            master_table.insert(delta_rec)
+        elif delta_rec.myw_change_type == "update":
+            master_table.updateFrom(delta_rec._id, delta_rec)
+        elif delta_rec.myw_change_type == "delete":
+            master_table.delete(delta_rec)
+
+        # Remove it from delta
+        delta_table = self.session.query(self.delta_model)
+        base_table = self.session.query(self.base_model)
+        base_rec = self._baseRec(delta_rec._id)
+
+        self.session.delete(delta_rec)
+        if base_rec:
+            self.session.delete(base_rec)
+
+    # ==============================================================================
+    #                                    HELPERS
+    # ==============================================================================
+
+    def _new_detached(self, change_type="insert"):
+        """
+        Returns a detached record (a SQLAlchemy model instance)
+        """
+
+        rec = self.delta_model(myw_delta=self.delta, myw_change_type=change_type)
+
+        return rec
+
+    def _deltaRec(self, id):
+        """
+        The delta record for feature ID (if there is one)
+        """
+
+        return self.session.query(self.delta_model).get((self.delta, id))
+
+    def _baseRec(self, id):
+        """
+        The base record for feature ID (if there is one)
+        """
+
+        return self.session.query(self.base_model).get((self.delta, id))
+
+    def _delta_filtered_recs(self, offset=None, limit=None, order_by_info=[], batched=True):
+        """
+        Returns SQLAlchemy query yielding delta records of self (excluding deletes)
+        """
+
+        recs = self._delta_recs.filter(self.delta_model.myw_change_type != "delete")
+
+        return self._buildQuery(self.delta_model, recs, offset, limit, order_by_info, batched)
+
+    def _master_filtered_recs(self, offset=None, limit=None, order_by_info=[], batched=True):
+        """
+        Returns SQLAlchemy query yielding master records of self
+        """
+
+        return self._buildQuery(
+            self.model, self._master_unshadowed_recs, offset, limit, order_by_info, batched
+        )
+
+    @property
+    def _master_unshadowed_recs(self):
+        """
+        Records in master but not in delta
+        """
+
+        # ENH: Could cache filter
+
+        if self.schema == "delta":
+            return self._recs.filter(
+                False
+            )  # For 'delta' schema we never want to return any master records
+
+        delta_rec_exists = (self.delta_model.myw_delta == self.delta) & (
+            self.delta_model._key_column() == self.model._key_column()
+        )
+
+        return self._recs.filter(~exists().where(delta_rec_exists))
+
+    @property
+    def _delta_recs(self):
+        """
+        All delta records of self
+        """
+        if self.schema == "delta":
+            return self.session.query(self.delta_model).filter(
+                self.delta_model.myw_delta != self.delta
+            )  # All delta recs except the current delta
+        else:
+            return self.session.query(self.delta_model).filter(
+                self.delta_model.myw_delta == self.delta
+            )
+
+    @property
+    def _base_recs(self):
+        """
+        All base records of self
+        """
+        if self.schema == "delta":
+            return self.session.query(self.base_model).filter(
+                self.delta_model.myw_delta != self.delta
+            )  # All base recs except the current delta
+        else:
+            return self.session.query(self.base_model).filter(
+                self.base_model.myw_delta == self.delta
+            )

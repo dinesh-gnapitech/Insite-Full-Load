@@ -1,0 +1,324 @@
+.overlay-disabled {
+    .vector-legend,
+    .esri-legend,
+    .ogc-legend {
+        opacity: 0.4;
+    }
+}
+
+.esri-legend {
+    padding: 5px;
+    padding-left: 35px;
+    .heading {
+        position: relative;
+        left: -15px;
+        margin-bottom: 5px;
+    }
+    .icon {
+        display: inline-block;
+        width: 40px;
+        overflow: hidden;
+    }
+    .label {
+        vertical-align: top;
+        font-family: Arial;
+        color: #6d6d6d;
+        margin-top: 2px;
+    }
+}
+
+.ogc-legend {
+    padding: 5px;
+    padding-left: 35px;
+}
+
+.vector-legend {
+    padding: 0 0 5px 25px;
+
+    .legend-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .icon {
+        display: inherit;
+        width: 40px;
+        overflow: hidden;
+        margin-right: 6px;
+    }
+    #arrowed {
+        display: inline-flex;
+    }
+    .label {
+        display: inline-block;
+        vertical-align: top;
+        color: #6d6d6d;
+        font-family: Arial;
+        margin-top: 1px;
+        line-height: 24px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        width: calc(100% - 46px);
+    }
+
+    .polygon {
+        margin-right: 6px;
+        width: 36px;
+        height: 11px;
+    }
+
+    .arrow-end,
+    .arrow-begin {
+        bottom: 3px;
+        position: relative;
+    }
+
+    .arrow-begin {
+        margin-right: -3px;
+    }
+    .arrow-end {
+        margin-left: -3px;
+    }
+
+    .arrow-left {
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-right: 5px solid;
+        display: inline-block;
+        vertical-align: sub;
+    }
+
+    .arrow-right {
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 5px solid;
+        display: inline-block;
+        vertical-align: sub;
+    }
+
+    .solid-line {
+        width: 36px;
+        height: 7px;
+        border-bottom: 3px solid;
+        display: inline-block;
+        margin-bottom: 7px;
+        vertical-align: middle;
+    }
+    .dot-line {
+        width: 30px;
+        height: 7px;
+        border-bottom: 3px dotted;
+        display: inline-block;
+        margin-bottom: 3px;
+    }
+    .dash-line {
+        width: 100px;
+        height: 7px;
+        border-bottom: 3px dashed;
+        display: inline-block;
+        margin-bottom: 3px;
+    }
+    .longdash-line,
+    .longdashdot-line {
+        display: flex;
+        height: 10px;
+        margin-bottom: 7px;
+    }
+    .longdash {
+        border-bottom: 3px solid;
+        display: inline-block;
+        margin-right: 6px;
+        width: 12px;
+        border-bottom-color: inherit;
+        vertical-align: 3px;
+    }
+    .dot {
+        border-bottom: 3px solid;
+        display: inline-block;
+        margin-right: 6px;
+        width: 3px;
+        border-bottom-color: inherit;
+        vertical-align: 3px;
+    }
+    .shortdash {
+        border-bottom: 3px solid;
+        display: inline-block;
+        margin-right: 1px;
+        width: 6px;
+        border-bottom-color: inherit;
+        vertical-align: 3px;
+    }
+    .arrowed-line {
+        display: grid;
+        .solid-line {
+            border-bottom-color: inherit;
+            grid-row: 1;
+            grid-column: 1;
+            margin-bottom: 7px;
+        }
+        .arrow-left {
+            color: inherit;
+            grid-column: 1;
+            grid-row: 1;
+            margin-left: 15px;
+            margin-top: 3px;
+            margin-bottom: 4px;
+        }
+    }
+}
+
+.range-slider-widget-control {
+    position: relative;
+    margin-bottom: 4px;
+
+    @mixin label() {
+        display: inline-block;
+        width: 50%;
+        font-size: 10px;
+    }
+
+    .min-value-label {
+        @include label;
+        text-align: left;
+    }
+
+    .max-value-label {
+        @include label;
+        text-align: right;
+    }
+
+    &:hover {
+        .output {
+            opacity: 1;
+            z-index: 10;
+        }
+    }
+
+    .output {
+        position: absolute;
+        background: #aaa;
+        height: 18px;
+        text-align: center;
+        color: white;
+        bottom: 33px;
+        padding: 3px;
+        margin-left: -1%;
+        margin-right: -1%;
+        box-shadow: #555 1px 1px 3px;
+        opacity: 0;
+        transition: opacity ease-in-out 0.5s;
+    }
+
+    output:after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-top: 10px solid #aaa;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        top: 100%;
+        left: 50%;
+        margin-left: 4px;
+        margin-right: 4px;
+        margin-top: -1px;
+    }
+
+    output.left:after {
+        left: 0%;
+    }
+
+    output.right:after {
+        right: 0%;
+        left: auto;
+    }
+}
+
+input.range-slider {
+    -webkit-appearance: none;
+    height: 20px;
+    width: 100%;
+    background: transparent;
+    outline: none;
+
+    @mixin track() {
+        width: 100%;
+        height: 2px;
+        cursor: pointer;
+        background: #ccc;
+        border-radius: 3px;
+    }
+
+    @mixin thumb() {
+        height: 14px;
+        width: 14px;
+        border-radius: 50%;
+        background: #aaa;
+        cursor: pointer;
+        border: none;
+        z-index: 10;
+        position: relative;
+    }
+
+    @mixin trackFill() {
+        background: #ccc;
+        border: none;
+    }
+
+    &.no-track {
+        &::-ms-track {
+            background: transparent !important;
+        }
+    }
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        margin-top: -6px;
+        @include thumb;
+    }
+
+    &::-webkit-slider-runnable-track {
+        @include track;
+    }
+
+    &::-moz-range-track {
+        @include track;
+    }
+
+    &::-ms-track {
+        background: transparent;
+        border-color: transparent;
+        color: transparent;
+        @include track;
+    }
+
+    &::-moz-range-thumb {
+        @include thumb;
+    }
+
+    &::-ms-thumb {
+        @include thumb;
+    }
+
+    &:focus::-ms-fill-lower {
+        background: #ccc;
+    }
+
+    &::-ms-fill-lower {
+        @include trackFill();
+    }
+
+    &::-ms-fill-upper {
+        @include trackFill();
+    }
+
+    &::-ms-tooltip {
+        display: none;
+    }
+}

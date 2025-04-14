@@ -1,0 +1,11 @@
+#logo {
+    cursor: pointer;
+    background-repeat: no-repeat;
+    background-position: center;
+    font-size: 0;
+}
+.logo-large {
+    background-image: url('#{$path-to-img}logos/IQGeo_logo_header.svg');
+    margin: 3.5px 10px 0 0;
+    width: 125px;
+}

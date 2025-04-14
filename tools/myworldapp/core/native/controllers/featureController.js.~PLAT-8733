@@ -1,0 +1,454 @@
+// Copyright: IQGeo Limited 2010-2023
+import { difference, pick } from 'underscore';
+import { FilterParser, DuplicateKeyError, ObjectNotFoundError } from 'myWorld-base';
+import { BaseController } from '../base/controllers';
+
+/**
+ * Controller for accessing data from feature tables
+ * Not meant to be instantiated by custom controllers - use {@link FeatureView} and {@link FeatureTable} - but could potentially be used as a superclass
+ */
+export class FeatureController extends BaseController {
+    /**
+     * Returns a feature as GeoJson
+     * @param {string} dsName datasource name
+     * @param {string} featureType
+     * @param {number|string} keyValue
+     * @param {FeatureModelOptions} options
+     * @returns {FeatureModel}
+     */
+    async get(dsName, featureType, keyValue, options) {
+        options = Object.assign({ displayValues: true }, options); //FIXME: this should be unnecessary
+        await this.currentUser.assertAuthorized(dsName, featureType);
+        const table = this.view.table(featureType, dsName);
+
+        if (typeof keyValue === 'string' || keyValue instanceof String)
+            keyValue = keyValue.split('?')[0];
+        const feature = await table.get(keyValue, options);
+        if (!feature) throw new ObjectNotFoundError();
+
+        return feature;
+    }
+
+    /**
+     * Returns features from a table as GeoJson
+     * @param  {string} dsName
+     * @param  {string} featureType
+     * @param  {queryParams} options
+     * @return {FeatureCollection}
+     */
+    async getFeatures(dsName, featureType, options) {
+        const query = await this._getQuery(dsName, featureType, options);
+        //in order to calculate unlimited count we'll
+        //request one extra feature so we can know if there are more features than the requested number
+        query.limit(options.limit + 1);
+
+        const features = await query.all();
+        return this._asFeatureCollection(features, query, options);
+    }
+
+    /**
+     *
+     * @param {string} featureType
+     * @param {string[]} ids
+     * @param {queryParams} options
+     * @return {FeatureCollection}
+     */
+    async getFeaturesByIds(dsName, featureType, ids, options) {
+        const query = await this._getQueryById(dsName, featureType, ids);
+        query.limit(options.limit + 1);
+
+        const features = await query.all();
+        return this._asFeatureCollection(features, query, options);
+    }
+
+    async count(dsName, featureType, options) {
+        const query = await this._getQuery(dsName, featureType, options);
+        return query.count();
+    }
+
+    async getFeaturesAround(featureType, lng, lat, toleranceInMetres) {
+        const table = this.view.table(featureType);
+
+        const features = await table.whereAround(lng, lat, toleranceInMetres).all();
+        return {
+            features
+        };
+    }
+
+    /**
+     * Insert a feature into a table
+     * @param  {string}   featureName
+     * @param  {object}   insertData
+     * @returns {Promise}
+     */
+    insertFeature(featureName, insertData, update) {
+        return this.view.runWithinWriteLock(async () => {
+            await this.currentUser.assertAuthorized('myworld', featureName, {
+                right: 'editFeatures'
+            });
+            const table = this.view.table(featureName);
+            await table.initialized;
+            const keyFieldName = table.featureDef.key_name;
+            const keyFieldDef = table.featureDef.fields[keyFieldName];
+            const isFeature = typeof insertData.properties == 'object';
+
+            //Get supplied key (if there is one)
+            let key = isFeature ? insertData.properties[keyFieldName] : insertData[keyFieldName];
+
+            //Ignore supplied key for generated keys (to avoid messing up sequences)
+            if (key && keyFieldDef.generator) {
+                if (isFeature) delete insertData.properties[keyFieldName];
+                else delete insertData[keyFieldName];
+                key = undefined;
+            }
+
+            //Check for already exists
+            let rec;
+            if (key) rec = await table.get(key);
+
+            if (rec && !update) throw new DuplicateKeyError();
+
+            // Do action
+            let id;
+            if (rec) {
+                await table.update(key, insertData, false);
+                id = key;
+            } else {
+                id = await table.insert(insertData);
+            }
+
+            return { res: id, table };
+        });
+    }
+
+    /**
+     * Update a feature in a table
+     * @param  {string}   featureName
+     * @param  {string}   featureId
+     * @param  {object}   updateData
+     * @param  {boolean}   [ignoreFailure=true]
+     * @returns {Promise}
+     */
+    updateFeature(featureName, featureId, updateData, ignoreFailure = true) {
+        return this.view.runWithinWriteLock(async () => {
+            await this.currentUser.assertAuthorized('myworld', featureName, {
+                right: 'editFeatures'
+            });
+            const table = this.view.table(featureName);
+            await table.update(featureId, updateData, ignoreFailure);
+
+            return { res: true, table };
+        });
+    }
+
+    /**
+     * Delete a feature by its id
+     * @param  {string}   featureName
+     * @param  {string}   recordId
+     * @returns {Promise}
+     */
+    deleteFeature(featureName, recordId) {
+        return this.view.runWithinWriteLock(async () => {
+            await this.currentUser.assertAuthorized('myworld', featureName, {
+                right: 'editFeatures'
+            });
+            const table = this.view.table(featureName);
+            await table.delete(recordId);
+            return { res: true, table }; // Success
+        });
+    }
+
+    /**
+     *  Run (insert, delete, update) operations on multiple features within one transaction in the database
+     *  @param  {Array<transactionItem>} operations where transactionItem is of the form [op, featureType, MyWorldFeature]  transaction
+     *  @return {Array<number>} ids
+     */
+    async runTransaction(operations) {
+        return this.view.runInTransaction(() => this._runTransaction(operations));
+    }
+
+    /**
+     * Records the given db operations in the local database without change tracking.
+     * Disabling of change tracking means these changes won't trigger an upload of these changes from the device back to the master server.
+     * Meant to be used with operational data that updates too frequently to be updated via the regular sync process.
+     * Not to be used with versioned features
+     *  @param  {Array<transactionItem>} operations where transactionItem is of the form [op, featureType, MyWorldFeature]  transaction
+     *  @return {Array<number>} ids
+     */
+    runTransactionWithoutChangeTracking(operations) {
+        return this._db.runWithoutChangeTracking(() => this._runTransaction(operations));
+    }
+
+    /**
+     * Update a collections of features with a given set of field/value pairs
+     * @param  {MyWorldFeature[]}   features
+     * @param  {object}   properties New values keyed on field name
+     * @return {string[]}     List with urns of updated features {updated_features}
+     */
+    async bulkUpdate(features, properties) {
+        let changedTableBeingTracked = false;
+        const featuresByType = {};
+        for (const feature of features) {
+            const { type } = feature;
+            if (!featuresByType[type]) featuresByType[type] = [];
+            featuresByType[type].push(feature.getId());
+        }
+        for (const [featureType] of Object.entries(featuresByType)) {
+            await this.currentUser.assertAuthorized('myworld', featureType, {
+                right: 'bulkEditFeatures'
+            });
+        }
+
+        return this.view.runInTransaction(async () => {
+            // Then perform the updates, one feature type at a time.
+            const updatedUrns = [];
+            for (const [featureType, pkeys] of Object.entries(featuresByType)) {
+                const table = this.view.table(featureType);
+                const updatedPks = await table.updateManyFrom(pkeys, properties);
+                const urns = updatedPks.sort().map(key => `${featureType}/${key}`);
+                updatedUrns.push(...urns);
+
+                if (table.isTrackingChanges) changedTableBeingTracked = true;
+
+                //log urns that didn't get updated
+                const missingKeys = difference(pkeys, updatedPks);
+                if (missingKeys.length)
+                    console.warn(`Failed to bulk-edit '${featureType}' features: ${missingKeys}`);
+            }
+            return { updatedUrns, changedTableBeingTracked };
+        });
+    }
+
+    async _runTransaction(transactions) {
+        let changedTableBeingTracked = false;
+        //run sql sequentially since otherwise updates are not detected in jsqlite database
+        //and invalid values are returned
+
+        const recs = [];
+        const ids = [];
+
+        for (const transactionItem of transactions) {
+            const featureData = transactionItem[2];
+            const properties = featureData.properties;
+            const featureType = transactionItem[1];
+            await this.currentUser.assertAuthorized('myworld', featureType, {
+                right: 'editFeatures'
+            });
+            const table = this.view.table(featureType);
+            let key;
+            await table.initialized;
+
+            this._substitutePlaceholders(table, featureData, recs);
+
+            if (table.isTrackingChanges) changedTableBeingTracked = true;
+            if (transactionItem[0] == 'insert') {
+                //Check for already exists
+                let rec;
+                //Get supplied key (if there is one)
+                const keyFieldName = table.featureDef.key_name;
+                let key = featureData.properties[keyFieldName];
+                if (key) rec = await table.get(key);
+                if (rec) throw new DuplicateKeyError();
+                const id = await table.insert(featureData);
+                recs.push(await table.get(id));
+                ids.push(isNaN(id) ? id : parseInt(id));
+            } else if (transactionItem[0] == 'update') {
+                key = properties[table.key_name];
+                const result = await table.update(key, featureData, false);
+                if (result) {
+                    recs.push(await table.get(key));
+                    ids.push(key);
+                }
+            } else if (transactionItem[0] == 'insertOrUpdate') {
+                const values = await table.valuesFrom(featureData); //insertOrUpdateFeature expects a flat object with values, not a feature
+                const result = await table.insertOrUpdateFeature(values);
+                if (result) {
+                    recs.push(await table.get(key));
+                    ids.push(key);
+                }
+            } else if (transactionItem[0] == 'delete' || transactionItem[0] == 'deleteIfExists') {
+                const ignoreFailure = 'deleteIfExists' === transactionItem[0];
+                key = properties[table.key_name];
+                recs.push[null];
+                const deleted = await table.delete(key, ignoreFailure);
+                ids.push(deleted ? key : '');
+            }
+        }
+
+        return {
+            ids,
+            changedTableBeingTracked
+        };
+    }
+
+    _substitutePlaceholders(table, feature, recs) {
+        Object.entries(table.featureDef.fields)
+            .filter(([fieldName, fieldDef]) =>
+                ['reference', 'foreign_key'].includes(fieldDef.baseType())
+            )
+            .forEach(([fieldName, fieldDef]) => {
+                let value = feature.properties[fieldName];
+                if (!value) return;
+                if (typeof value !== 'object') return;
+
+                let placeholder = value['operation'];
+                if (fieldDef.baseType() == 'reference')
+                    feature.properties[fieldName] = recs[placeholder].getUrn();
+                if (fieldDef.baseType() == 'foreign_key')
+                    feature.properties[fieldName] = recs[placeholder].id;
+            });
+    }
+
+    async _getQuery(dsName, featureType, options) {
+        const featureDef = await this.currentUser.getAppFeatureDef(dsName, featureType);
+        const table = this.view.table(featureType, dsName);
+        const queryOptions = pick(
+            options,
+            'forExport',
+            'displayValues',
+            'includeLobs',
+            'includeGeoGeometry',
+            'includeTotal',
+            'alias'
+        );
+        let query = table.query(queryOptions);
+
+        const qOptions = { geomFieldName: featureDef.primary_geom_name, ...options };
+        this._applyQueryRestrictions(query, qOptions);
+
+        if (featureDef.filters.length && !featureDef.unfiltered) {
+            const predicates = featureDef.filters.map(filter => filter.pred);
+            query = query.filter(predicates);
+        }
+
+        return query;
+    }
+
+    _applyQueryRestrictions(query, options) {
+        const { bounds, geom, geomFieldName, geomWorld } = options;
+        if (bounds) {
+            if (geomWorld) query.whereGeomInWorld(geomFieldName, geomWorld);
+            query.whereIntersects(geomFieldName, {
+                xmin: bounds._southWest.lng,
+                ymin: bounds._southWest.lat,
+                xmax: bounds._northEast.lng,
+                ymax: bounds._northEast.lat
+            });
+        }
+        if (geom) {
+            if (geomWorld) query.whereGeomInWorld(geomFieldName, geomWorld);
+            query.whereIntersects(geomFieldName, geom);
+        }
+
+        const { clauses, filter, predicate, orderBy, limit, offset } = options;
+        if (clauses) query.where(this._sqlForClauses(clauses));
+        if (filter) {
+            const predicate = new FilterParser(filter).parse();
+            query.filter([predicate]);
+        }
+        if (predicate) query.where(predicate);
+
+        if (orderBy) query.orderBy(orderBy);
+        if (limit) query.limit(limit);
+        if (offset) query.offset(offset);
+    }
+
+    async _getQueryById(dsName, featureType, ids) {
+        const featureDef = await this.currentUser.getAppFeatureDef(dsName, featureType);
+        const table = this.view.table(featureType, dsName);
+        return table.where({ [featureDef.key_name]: ids });
+    }
+
+    /*
+     * @return {sqlString}
+     */
+    _sqlForClauses(clauses) {
+        const sqlParams = {};
+        let sql = clauses.map(this._processClauseParam.bind(this, sqlParams)).join(' AND ');
+        sql = new String(sql);
+        sql.params = sqlParams;
+        return sql;
+    }
+
+    /*
+     * Convert an attribute clause into SQL
+     * @param  {object} params  Object containing SQL parameters
+     * @param  {Clause} clause  The object describing the clause
+     * @param  {number}index   The index of the clause (used in the parameter name in SQL)
+     * @return  {String}  The SQL for the clause
+     */
+    _processClauseParam(params, clause, index) {
+        // clause is a clause object of form:
+        // {
+        //   fieldName: ,
+        //   operator: ,
+        //   value:
+        // }
+        // We assume that the data in clause is valid
+
+        const clauseValueId = `clause_value${index}`;
+        let operator = clause.operator;
+        let value = clause.value;
+
+        if (value === null) {
+            // We assume that the operator will either be = or <>
+            const condition = operator == '=' ? 'is' : 'is not';
+            return `"${clause.fieldName}" ${condition} NULL`;
+        }
+
+        if (clause.operator == 'like') {
+            // Case sensitive. In SQLite we need to use 'glob'
+            value = `*${value}*`;
+            operator = 'glob';
+        } else if (clause.operator == 'ilike') {
+            // Case insensitive. In SQLite we need to use 'like'
+            value = `%${value}%`;
+            operator = 'like';
+        }
+        // Boolean conversion
+        else if (value === true) {
+            value = 1;
+        } else if (value === false) {
+            value = 0;
+        }
+        params[clauseValueId] = value;
+        return `"${clause.fieldName}" ${operator} :${clauseValueId}`;
+    }
+
+    //assumes query was performed with limit+1
+    async _asFeatureCollection(features, query, options) {
+        const offset = options.offset;
+        let unlimited_count = null;
+        const count = features.length;
+        const fc = {
+            features,
+            offset: options.offset
+        };
+
+        if (count == options.limit + 1) {
+            // We got all we asked for
+            features.pop();
+        } else if (count === 0 && offset !== null) {
+            // We were looking beyond the end of the table
+            // Do nothing
+        } else {
+            unlimited_count = count + offset;
+        }
+
+        if (unlimited_count === null && options.includeTotal === true) {
+            const unlimited_count = await query.count();
+            fc.unlimited_count = unlimited_count;
+            return fc;
+        } else if (unlimited_count !== null) {
+            fc.unlimited_count = unlimited_count;
+        }
+        fc.count = fc.features.length;
+        return fc;
+    }
+}
+
+/**
+ * Extends {@link FeatureModelOptions} with additional options to apply to a query
+ * @typedef {object} queryParams
+ * @property {number}[limit] Maximum number of features to return
+ */

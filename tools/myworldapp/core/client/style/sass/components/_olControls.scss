@@ -1,0 +1,229 @@
+// ZOOM LEVEL CONTROL
+.slider-enabled {
+    .ol-zoom .ol-zoom-out {
+        margin-top: 204px;
+        cursor: pointer;
+    }
+    .ol-zoom-in {
+        cursor: pointer;
+    }
+    .ol-zoomslider-thumb {
+        background-color: hsl(0, 0%, 67%);
+        border: 0.5px solid rgba(0, 0, 0, 0.2);
+        margin-left: -10px;
+        width: 20px;
+        cursor: pointer;
+    }
+    .myw-zoom-level {
+        top: 272px;
+        left: 6px;
+        background-color: #fff;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        font: 700 12px/20px Tahoma, Verdana, sans-serif;
+        width: 22px;
+        height: 20px;
+        text-align: center;
+    }
+    .ol-zoomslider.slider-enabled {
+        background-color: rgba(0, 0, 0, 0.19);
+        top: 34px;
+        width: 1px;
+        border-radius: 0;
+        left: 20px;
+        padding: 1px;
+        height: 202px;
+    }
+}
+
+.slider-disabled {
+    .ol-zoomslider-thumb {
+        display: none;
+    }
+    .myw-zoom-level {
+        top: 75px;
+        left: 6px;
+        background-color: white;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        font: 700 12px/20px Tahoma, Verdana, sans-serif;
+        width: 26px;
+        height: 22px;
+        text-align: center;
+    }
+    .ol-zoomslider.slider-disabled {
+        height: 0px;
+        display: none;
+    }
+}
+
+.ol-zoom {
+    padding: 0px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    button {
+        background-color: white;
+        color: black;
+        width: 26px;
+        height: 26px;
+        margin: 0;
+    }
+    &.slider-disabled button {
+        width: 30px;
+        height: 30px;
+    }
+    .ol-zoom-in,
+    .ol-zoom-out {
+        &:hover {
+            color: $color-link-font;
+        }
+    }
+    .ol-zoom-in {
+        border-bottom: 1px solid #ddd;
+    }
+    .ol-zoom-out {
+        border-top: 1px solid #ddd;
+    }
+}
+
+//MOUSE POSITION CONTROL
+.myw-mouse-position {
+    bottom: 35px;
+    left: 6px;
+    padding: 2px 5px;
+    background-color: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+// BASEMAP CONTROL
+.myw-basemap-selector {
+    right: 6px;
+    top: 6px;
+    width: 36px;
+    height: 36px;
+    background-color: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.basemap-table-container {
+    position: relative;
+    right: 124px;
+    bottom: 4px;
+}
+
+.basemap-table {
+    width: 160px;
+    display: block;
+    background: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    .basemap-table-row {
+        box-shadow: 0 2px 2px -2px rgba(0, 0, 0, 0.2);
+        &.selected,
+        &:hover {
+            background: #f6f6f6;
+            color: $color-link-font;
+        }
+    }
+    td {
+        padding: 4px 10px;
+        .basemap-radio {
+            vertical-align: middle;
+        }
+        .basemap-radio-label {
+            padding-left: 8px;
+        }
+    }
+}
+
+// MAP SCALE
+.ol-scale-line {
+    bottom: 6px;
+    left: 6px;
+    background: hsla(0, 0%, 100%, 0.5);
+    padding: 0px;
+    .ol-scale-line-inner {
+        color: #333;
+        border: 2px solid #777;
+        border-top: none;
+    }
+}
+
+// OVERVIEW MAP
+.ol-overviewmap {
+    left: unset;
+    right: 0.5em;
+    bottom: 0.25em;
+    &.ol-control {
+        padding: 0px;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        button {
+            margin: 0px;
+            font-size: 1.5em;
+            color: #535353;
+            z-index: 100;
+        }
+    }
+    .ol-overviewmap-map {
+        border-color: #ffffff;
+    }
+    button {
+        background-color: white;
+        color: black;
+    }
+}
+
+.ol-attribution {
+    display: block;
+    font-size: 10px;
+    box-shadow: none;
+    background: hsla(0, 0%, 100%, 0.7);
+    margin: 0;
+    padding: 0 5px;
+    a {
+        color: #333;
+    }
+    button {
+        display: none;
+    }
+}
+
+//ROTATION BUTTON
+.ol-rotate {
+    right: 6px;
+    top: 56px;
+    width: 36px;
+    height: 36px;
+    background-color: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    .ol-rotate-reset {
+        color: #ababab;
+        font-size: 2em;
+        background-color: white;
+    }
+}
+
+//USER LOCATION MODE BUTTON
+.myw-rotate-button {
+    position: fixed !important;
+    bottom: 42px;
+    right: 6px;
+    height: 40px;
+    width: 40px;
+    background-color: white;
+    border-radius: 50%;
+    display: inline-block;
+    position: absolute;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    background-position: center;
+    transition: bottom 200ms, right 200ms ease-out 0.1s;
+    .compassImage {
+        left: 2px;
+        top: 2px;
+        position: relative;
+    }
+}
+
+// showing rotate button next to peg man icon when necessary
+// in most of the situations, will only show on of them
+& [data-street-view-control] .myw-rotate-button {
+    bottom: 47px;
+    right: 60px;
+}

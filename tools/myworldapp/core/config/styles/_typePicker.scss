@@ -1,0 +1,45 @@
+.type-picker-modal {
+    .ant-modal-body {
+        padding: 10px 0;
+    }
+    .type-picker-item,
+    .type-picker-item-large {
+        padding: 0 20px;
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &.item-selected {
+            background-color: $list-highlight-color;
+            font-weight: 600;
+        }
+        &:not(.item-selected):hover {
+            background-color: $list-item-hover-color;
+        }
+
+        .input-punctuation-container {
+            display: inline-block;
+            width: 100%;
+        }
+    }
+    .type-picker-item {
+        line-height: 40px;
+        height: 40px;
+        .input-punctuation-container {
+            height: 40px;
+        }
+    }
+    .type-picker-item-large {
+        line-height: 80px;
+        height: 80px;
+        .input-punctuation-container {
+            height: 80px;
+        }
+        .ant-select {
+            vertical-align: middle;
+        }
+    }
+    .date-default-row {
+        column-gap: 12px;
+    }
+}

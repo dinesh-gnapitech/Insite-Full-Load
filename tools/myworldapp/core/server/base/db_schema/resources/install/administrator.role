@@ -1,0 +1,29 @@
+{
+   "name": "Administrator", 
+   "description": "{:admin_role_desc}", 
+   "permissions": {
+      "config": [ 
+      	  "manageUsers",
+	  "manageRoles",
+	  "manageApplications",
+	  "manageFeatures",
+	  "manageFeatureConfig",
+	  "manageLayers",
+	  "manageNetworks",
+	  "manageDatasources",
+	  "managePickLists",
+	  "manageSettings",
+	  "manageNotifications",
+	  "manageReplicas",
+	  "manageUpload"
+      ],
+      "standard": [
+         "createSharedBookmark", 
+         "modifyLayerList",
+         "addPrivateLayers",
+         "editGroups", 
+         "editFeatures", 
+         "persistState"
+      ]
+   }
+}

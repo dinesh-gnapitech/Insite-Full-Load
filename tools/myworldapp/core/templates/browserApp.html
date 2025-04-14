@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,viewport-fit=cover" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="myworld-version" content="${myworld_version}" />
+        <meta name="myworld-project-build-version" content="${build_version}" />
+        <link rel="apple-touch-icon" href="images/logos/apple-touch-icon.ico" />
+        <link rel="shortcut icon" href="favicon.ico" />
+        <link rel="stylesheet" type="text/css" href="bundles/styles/myWorld-client.bundle.css?${build_version}">
+        <link rel="stylesheet" type="text/css" href="bundles/applications/myWorld-applications.bundle.css?${build_version}">
+        % if bundle_css_path is not None:
+        <link rel="stylesheet" type="text/css" href="${bundle_css_path}?${build_version}">
+        % endif
+        <script type="text/javascript" src="bundles/client/myWorld-client.js?${build_version}"></script>
+        <script type="text/javascript" src="${bundle_js_path}?${build_version}"></script>
+
+        <title>IQGeo</title>
+    </head>
+    <body
+        id="myWorldApp"
+        data-myw-application="${application}"
+        data-myw-external-name="${application_external_name}"
+        data-myw-layout="${layout}"
+        data-myw-user="${user}"
+        data-myw-languages="${languages}">
+        <script>$(myw.instantiateApplicationFromEnv);</script>
+    </body>
+</html>

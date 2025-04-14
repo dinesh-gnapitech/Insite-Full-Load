@@ -1,0 +1,11 @@
+{
+   "name": "standard", 
+   "external_name": "{:standard_app_name}", 
+   "description": "{:standard_app_desc}", 
+   "javascript_file": "main.standard.js", 
+   "image_url": "images/application_standard.png", 
+   "layers": [
+      "{:notes_layer_name}", 
+      "{:none_layer_name}"
+   ]
+}

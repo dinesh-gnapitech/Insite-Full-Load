@@ -1,0 +1,35 @@
+<div class="feature-edit-container feature-edit-container-popup">
+    <div id="field-editors"></div>
+    <%geometries.forEach(function(geomDD) {%> <%if (geom_not_editable) {%>
+    <div class="mapObject">
+        <h4 class="mapObjectLabel">{:map_object_label} <%= geomDD.external_name %></h4>
+    </div>
+    <%} else {%>
+    <div class="mapObject" geom_field="<%= geomDD.internal_name%>">
+        <h4
+            class="mapObjectLabel set-map-object geom_field_<%= geomDD.internal_name%>"
+            data-feature-editor-set-map-object
+        >
+            <%= geomMsgFn(geomDD) %> <%if (geomDD.type == 'point') {%>
+            <div
+                class="<%= isUserLocationTracking ? 'show' : '' %>"
+                data-feature-editor-set-map-object
+                data-feature-editor-use-user-location
+                title="<%= set_to_current_location_tooltip %>"
+            ></div>
+            <%}%>
+            <div></div>
+        </h4>
+        <div
+            class="mapObjectValidationLabel inlineValidation geom_field_<%= geomDD.internal_name%>"
+        ></div>
+    </div>
+    <%}%> <%})%>
+    <div class="popup-feature-edit-actions content-centered padded5 top-separator">
+        <button class="ui-button cancel">{:cancel}</button>
+        <% if (deletable) %> <button class="ui-button delete">{:delete}</button> <% ; %>
+        <button class="ui-button save primary-btn">{:save}</button>
+    </div>
+    <!--Messages for the user: alert, success and error -->
+    <div class="message-container"></div>
+</div>

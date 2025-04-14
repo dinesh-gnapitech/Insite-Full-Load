@@ -1,0 +1,398 @@
+<!-------------------- Point Styles -------------------->
+<div id="point-style-config" class="style-form hidden">
+    <div class="point-style-type">
+        <label><input type="radio" name="point-style-type" value="point-symbol" />{:symbol}</label>
+    </div>
+    <table>
+        <tr class="point-symbol-config">
+            <td>{:shape}</td>
+            <td>
+                <div id="point-style-symbol" class="input-dropdown">
+                    <div class="ui-selectmenu-button">
+                        <span id="point-style-symbol-selected" class="selected-dropdown-item"
+                            ><div class="circle"></div
+                        ></span>
+                        <span class="ui-icon ui-icon-triangle-1-s"></span>
+                    </div>
+                    <ul class="dropdown-menu"></ul>
+                </div>
+            </td>
+        </tr>
+        <tr class="point-symbol-config">
+            <td>{:fill_colour}</td>
+            <td>
+                <div
+                    id="point-style-colour-picker"
+                    data-allow-empty="true"
+                    class="input-dropdown ui-selectmenu-button colour-picker"
+                >
+                    <span class="picked-colour-blob"></span
+                    ><span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+            </td>
+        </tr>
+        <tr class="point-symbol-config">
+            <td>{:border_colour}</td>
+            <td>
+                <div
+                    id="point-style-border-colour-picker"
+                    data-allow-empty="true"
+                    class="input-dropdown ui-selectmenu-button colour-picker"
+                >
+                    <span class="picked-colour-blob"></span
+                    ><span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+            </td>
+        </tr>
+        <tr id="point-size-row" class="point-symbol-config">
+            <td>{:size}</td>
+            <td>
+                <input type="text" name="Symbol_size" />
+                <label><input type="radio" name="size-unit" value="px" checked />{:pixels}</label>
+                <label><input type="radio" name="size-unit" value="world units" />{:meters}</label>
+            </td>
+        </tr>
+    </table>
+    <div class="point-style-type">
+        <label><input type="radio" name="point-style-type" value="point-bitmap" />{:image}</label>
+    </div>
+    <table class="point-bitmap-config">
+        <tr id="point-bitmap">
+            <td>{:location}</td>
+            <td>
+                <input class="url-location" type="text" name="Location" />
+            </td>
+        </tr>
+        <tr id="point-bitmap-anchor">
+            <td>{:anchor}</td>
+            <td>
+                <div>
+                    <span class="point-bitmap-config-x"
+                        >X&nbsp;<input type="text" name="AnchorX"
+                    /></span>
+                    <span class="point-bitmap-config-y"
+                        >Y&nbsp;<input type="text" name="AnchorX"
+                    /></span>
+                </div>
+            </td>
+        </tr>
+        <tr id="point-bitmap-size-row">
+            <td>{:size}</td>
+            <td>
+                <input type="text" name="Symbol_size" />
+                <label><input type="radio" name="size-unit" value="px" checked />{:pixels}</label>
+                <label><input type="radio" name="size-unit" value="world units" />{:meters}</label>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-------------------- Line Styles -------------------->
+<table id="line-style-config" class="style-form hidden">
+    <tr>
+        <td>{:dash_style}</td>
+        <td>
+            <div class="line-style-symbol input-dropdown">
+                <div class="ui-selectmenu-button">
+                    <span class="line-style-pattern-selected selected-dropdown-item">
+                        <span class="solid-line"></span>
+                    </span>
+                    <span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+                <ul class="dropdown-menu">
+                    <li class="line-dot"><span class="dot-line"></span></li>
+                    <li class="line-shortdash">
+                        <span class="shortdash-line">
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                        </span>
+                    </li>
+                    <li class="line-dash"><span class="dash-line"></span></li>
+                    <li class="line-longdash">
+                        <span class="longdash-line">
+                            <span class="longdash"></span>
+                            <span class="longdash"></span>
+                            <span class="longdash"></span>
+                        </span>
+                    </li>
+                    <li class="line-longdashdot">
+                        <span class="longdashdot-line">
+                            <span class="longdash"></span>
+                            <span class="dot"></span>
+                            <span class="longdash"></span>
+                            <span class="dot"></span>
+                        </span>
+                    </li>
+                    <li class="line-arrowed">
+                        <span class="arrowed-line">
+                            <span class="solid-line"></span>
+                            <span class="arrow-left"></span>
+                            <span class="arrow-left"></span>
+                            <span class="arrow-left"></span>
+                            <span class="arrow-left"></span>
+                        </span>
+                    </li>
+                    <li class="line-solid"><span class="solid-line"></span></li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>{:colour}</td>
+        <td>
+            <div
+                data-allow-empty="true"
+                class="line-style-colour-picker input-dropdown ui-selectmenu-button colour-picker"
+            >
+                <span class="picked-colour-blob"></span
+                ><span class="ui-icon ui-icon-triangle-1-s"></span>
+            </div>
+        </td>
+    </tr>
+    <tr class="line-size-row">
+        <td>{:width}</td>
+        <td>
+            <input type="text" name="Line_width" />
+            <label><input type="radio" name="size-unit" value="px" />{:pixels}</label>
+            <label><input type="radio" name="size-unit" value="world units" />{:meters}</label>
+        </td>
+    </tr>
+    <tr class="arrow-styles">
+        <td>{:begin_style}</td>
+        <td>
+            <div id="arrow-begin-style-symbol" class="input-dropdown">
+                <div class="ui-selectmenu-button">
+                    <span id="arrow-begin-style-selected" class="selected-dropdown-item">
+                        <span class="arrow-none"></span>
+                    </span>
+                    <span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+                <ul class="dropdown-menu">
+                    <li><span class="arrow-none"></span></li>
+                    <li>
+                        <span class="arrow-begin">
+                            <span class="arrow-left"></span><span class="arrow-tail"></span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+    <tr class="arrow-styles">
+        <td>{:end_style}</td>
+        <td>
+            <div id="arrow-end-style-symbol" class="input-dropdown">
+                <div class="ui-selectmenu-button">
+                    <span id="arrow-end-style-selected" class="selected-dropdown-item">
+                        <span class="arrow-none"></span>
+                    </span>
+                    <span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+                <ul class="dropdown-menu">
+                    <li><span class="arrow-none"></span></li>
+                    <li>
+                        <span class="arrow-end">
+                            <span class="arrow-tail"></span><span class="arrow-right"></span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+</table>
+
+<!-------------------- Polygon Styles -------------------->
+<table id="polygon-style-config" class="style-form hidden">
+    <tr>
+        <td>{:fill_transparency}</td>
+        <td>
+            <div
+                data-allow-empty="true"
+                data-show-alpha="true"
+                id="polygon-style-colour-picker"
+                class="input-dropdown ui-selectmenu-button colour-picker"
+            >
+                <div class="picked-colour-container">
+                    <span class="picked-colour-blob"></span>
+                </div>
+                <span class="ui-icon ui-icon-triangle-1-s"></span>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>{:outline_style}</td>
+        <td>
+            <div class="line-style-symbol input-dropdown">
+                <div class="ui-selectmenu-button">
+                    <span class="line-style-pattern-selected selected-dropdown-item">
+                        <span class="solid-line"></span>
+                    </span>
+                    <span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+                <ul class="dropdown-menu">
+                    <li class="line-dot"><span class="dot-line"></span></li>
+                    <li class="line-shortdash">
+                        <span class="shortdash-line">
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                            <span class="shortdash"></span>
+                        </span>
+                    </li>
+                    <li class="line-dash"><span class="dash-line"></span></li>
+                    <li class="line-longdash">
+                        <span class="longdash-line">
+                            <span class="longdash"></span>
+                            <span class="longdash"></span>
+                            <span class="longdash"></span>
+                        </span>
+                    </li>
+                    <li class="line-longdashdot">
+                        <span class="longdashdot-line">
+                            <span class="longdash"></span>
+                            <span class="dot"></span>
+                            <span class="longdash"></span>
+                            <span class="dot"></span>
+                        </span>
+                    </li>
+                    <li class="line-solid"><span class="solid-line"></span></li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>{:outline_colour}</td>
+        <td>
+            <div class="line-style-colour-picker input-dropdown ui-selectmenu-button colour-picker">
+                <span class="picked-colour-blob"></span
+                ><span class="ui-icon ui-icon-triangle-1-s"></span>
+            </div>
+        </td>
+    </tr>
+    <tr class="line-size-row">
+        <td>{:outline_width}</td>
+        <td>
+            <input type="text" name="Outline_width" />
+            <label><input type="radio" name="size-unit" value="px" />{:pixels}</label>
+            <label><input type="radio" name="size-unit" value="world units" />{:meters}</label>
+        </td>
+    </tr>
+</table>
+
+<!-------------------- Text Styles -------------------->
+<table id="text-style-config" class="style-form hidden">
+    <tbody>
+        <tr id="text-attribute-name">
+            <td>{:attribute_name}</td>
+            <td><input type="text" name="Attribute name" id="text-attribute-name-input" /></td>
+        </tr>
+    </tbody>
+    <tbody id="text-style-not-attribute">
+        <tr>
+            <td>{:colour}</td>
+            <td>
+                <div
+                    id="text-style-colour-picker"
+                    class="input-dropdown ui-selectmenu-button colour-picker"
+                >
+                    <span class="picked-colour-blob"></span
+                    ><span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+            </td>
+        </tr>
+        <tr id="text-size-row">
+            <td>{:text_size}</td>
+            <td>
+                <input type="text" name="Text_size" />
+                <label><input type="radio" name="size-unit" value="px" />{:pixels}</label>
+                <label><input type="radio" name="size-unit" value="world units" />{:meters}</label>
+            </td>
+        </tr>
+        <tr>
+            <td>{:background_colour}</td>
+            <td>
+                <div
+                    data-allow-empty="true"
+                    id="text-style-background-colour-picker"
+                    class="input-dropdown ui-selectmenu-button colour-picker"
+                >
+                    <div class="picked-colour-container">
+                        <span class="picked-colour-blob"></span>
+                    </div>
+                    <span class="ui-icon ui-icon-triangle-1-s"></span>
+                </div>
+            </td>
+        </tr>
+        <tr id="text-border-width">
+            <td>{:outline_width}</td>
+            <td>
+                <input type="text" name="Outline_width" />
+                <span id="text-size-unit">{:pixels}</span>
+            </td>
+        </tr>
+        <tr id="text-vertical-align">
+            <td>{:vertical_just}</td>
+            <td>
+                <select class="select-justification">
+                    <option value="top">{:top}</option>
+                    <option value="middle">{:middle}</option>
+                    <option value="bottom">{:bottom}</option>
+                </select>
+                {:offset}<input
+                    class="offset-justification"
+                    type="text"
+                    name="Vertical justification offset"
+                />
+            </td>
+        </tr>
+        <tr id="text-horizontal-align">
+            <td>{:horizontal_just}</td>
+            <td>
+                <select class="select-justification">
+                    <option value="left">{:left}</option>
+                    <option value="centre">{:centre}</option>
+                    <option value="right">{:right}</option>
+                </select>
+                {:offset}<input
+                    class="offset-justification"
+                    type="text"
+                    name="Horizontal justification offset"
+                />
+            </td>
+        </tr>
+        <tr id="text-min-vis">
+            <td>{:zoom_level}</td>
+            <td>
+                {:min}
+                <select class="vis_select min-vis"></select>
+                {:max}
+                <select class="vis_select max-vis"></select>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<div id="stylepicker-error" class="hidden">
+    <div
+        class="alert-message alert alert-danger fade in hidden"
+        data-alert="alert"
+        style="display: inline-block; margin-bottom: 0px"
+    >
+        <span class="alert-text"> </span>
+        <span type="button" class="close cancelAlert" aria-label="Close"
+            ><span aria-hidden="true">×</span></span
+        >
+    </div>
+</div>

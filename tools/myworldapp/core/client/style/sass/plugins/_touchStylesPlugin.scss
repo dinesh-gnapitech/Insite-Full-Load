@@ -1,0 +1,14 @@
+.touch-styles-toggle {
+    display: inline-block;
+    @include background-with-image(
+        '#{$path-to-img}touch.svg',
+        no-repeat,
+        center,
+        $color-action-icons
+    );
+    @include size(100%);
+    border-radius: 23px;
+    &.inactive {
+        background-color: #bcbcbc;
+    }
+}

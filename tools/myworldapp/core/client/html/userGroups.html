@@ -1,0 +1,32 @@
+<script type="text/template" id="user-group-editor-template">
+    <div class='group-members'>
+        <label class='bold-font'>{:members}:</label>
+        <ul class="list members-list"></ul>
+        <% if (!!userHasEditPerm) {%><button type="button" class="add-member-btn ui-button">{:add_member_btn}</button><%}%>
+    </div>
+    <!--Messages for the user: alert, success and error -->
+    <div class="message-container"></div>
+</script>
+
+<script type="text/template" id="group-editor-actions-template">
+    <div class='content-centered'>
+        <span class='button group-save primary-btn'>{:save_btn}</span>
+        <span class='button group-delete'>{:delete_btn}</span>
+    </div>
+</script>
+
+<script type="text/template" id="group-manager-row-template">
+    <div class='group-name'><%=name%></div>
+    <div class='group-members'><%=members%></div>
+</script>
+
+<script type="text/template" id="group-member-template">
+    <span class="manager-btn <%if (isManager) {%>active<%}%>" title="{:manager}"></span>
+    <input class="text ui-input" value="<%=name%>" placeholder="<%=placeholder%>">
+    <span class="remove-btn" title="{:remove_from_group}"></span>
+</script>
+
+<script type="text/template" id="group-member-no-edit-template">
+    <span class="manager-btn <%if (isManager) {%>active<%}%>" title="{:manager}"></span>
+    <%=name%>
+</script>
