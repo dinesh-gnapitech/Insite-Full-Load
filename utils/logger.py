@@ -18,7 +18,9 @@ def setup_logger(log_folder):
     file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)
 
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+    # Avoid adding multiple handlers if setup_logger is called multiple times.
+    if not logger.handlers:
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
 
     return logger

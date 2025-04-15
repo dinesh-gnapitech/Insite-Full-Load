@@ -1,5 +1,9 @@
 import json
 
 def load_config(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(file_path, 'r') as f:
+            config = json.load(f)
+        return config
+    except Exception as e:
+        raise Exception(f"Error loading configuration file '{file_path}': {e}")

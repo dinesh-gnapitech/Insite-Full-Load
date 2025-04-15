@@ -13,6 +13,7 @@ def run_etl_for_table(mssql_conn, pg_conn, table_config, chunk_size, logger):
         logger.info(f"Running query for table: {full_target}")
         mssql_cursor.execute(query)
 
+        # Retrieve column names from the result set metadata
         columns = [desc[0] for desc in mssql_cursor.description]
 
         rows_fetched = 0
@@ -20,6 +21,8 @@ def run_etl_for_table(mssql_conn, pg_conn, table_config, chunk_size, logger):
             rows = mssql_cursor.fetchmany(chunk_size)
             if not rows:
                 break
+
+            # Convert fetched rows into a DataFrame for processing (optional)
             df = pd.DataFrame(rows, columns=columns)
 
             placeholders = ', '.join(['%s'] * len(columns))
@@ -27,9 +30,20 @@ def run_etl_for_table(mssql_conn, pg_conn, table_config, chunk_size, logger):
             insert_sql = f"INSERT INTO {full_target} ({column_list}) VALUES ({placeholders})"
 
             for row in df.itertuples(index=False, name=None):
-                pg_cursor.execute(insert_sql, row)
+                try:
+                    pg_cursor.execute(insert_sql, row)
+                except Exception as e:
+                    logger.error(f"Error inserting row {row} into {full_target}: {e}")
+                    pg_conn.rollback()
+                    raise Exception(f"Insert error for table {full_target}: {e}")
 
-            pg_conn.commit()
+            try:
+                pg_conn.commit()
+            except Exception as e:
+                logger.error(f"Error committing batch insert for {full_target}: {e}")
+                pg_conn.rollback()
+                raise Exception(f"Commit error for table {full_target}: {e}")
+
             rows_fetched += len(rows)
             logger.info(f"Inserted {rows_fetched} rows into {full_target}")
 
@@ -37,4 +51,4 @@ def run_etl_for_table(mssql_conn, pg_conn, table_config, chunk_size, logger):
 
     except Exception as e:
         logger.error(f"❌ ETL failed for {full_target}: {e}")
-        raise
+        raise Exception(f"ETL failed for {full_target}: {e}")
