@@ -1,0 +1,21 @@
+{
+    "name": "etl-dev",
+    "build": {
+      "dockerfile": "Dockerfile",
+      "context": "..",
+      "image": "etl-runner:dev"
+    },
+    "runArgs": [
+      "--name",
+      "etl-dev-container"
+    ],
+    "workspaceFolder": "/workspaces/mssql_to_postgres_etl_final",
+    "settings": {
+      "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "extensions": [
+      "ms-python.python"
+    ],
+    "postCreateCommand": "pip install -r requirements.txt"
+  }
+  
