@@ -3,19 +3,24 @@
     "build": {
       "dockerfile": "Dockerfile",
       "context": "..",
-      "image": "etl-runner:dev"
+      "image":
+      // Removed invalid "image" property
     },
     "runArgs": [
       "--name",
       "etl-dev-container"
     ],
     "workspaceFolder": "/workspaces/mssql_to_postgres_etl_final",
-    "settings": {
-      "terminal.integrated.defaultProfile.linux": "bash"
+    "customizations": {
+      "vscode": {
+        "settings": {
+      "terminal.integrated.defaultProfile.linux": "bash",
+        "extensions": [
+          "ms-python.python"
+        ]
+      }
     },
-    "extensions": [
-      "ms-python.python"
-    ],
     "postCreateCommand": "pip install -r requirements.txt"
   }
+}
   
